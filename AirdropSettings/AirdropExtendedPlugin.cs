@@ -11,6 +11,7 @@ diagnostics
 	- server notification
  */
 
+using System.Globalization;
 using AirdropExtended.Collision;
 using AirdropExtended.Diagnostics;
 using Oxide.Core;
@@ -46,87 +47,18 @@ namespace Oxide.Plugins
 		private void OnServerInitialized()
 		{
 			Load();
-			Puts(_settings.Settings.ToString());
-		}
 
-		// ReSharper disable once UnusedMember.Local
-		void OnPlayerLoot(PlayerLoot lootInventory, BaseEntity targetEntity)
-		{
-			var supplyDrop = targetEntity as SupplyDrop;
-			if (lootInventory == null || targetEntity == null || supplyDrop == null)
-				return;
-
-			Diagnostics.MessageTo(
-				_settings.Settings.NotifyOnPlayerLootingStartedMessage,
-				_settings.Settings.NotifyOnPlayerLootingStarted,
-				supplyDrop.net.ID,
-				lootInventory.GetComponent<BasePlayer>().userID);
-		}
-
-		// ReSharper disable once UnusedMember.Local
-		private void OnEntitySpawned(BaseEntity entity)
-		{
-			if (entity == null || _settings == null)
-				return;
-
-			if (entity is SupplyDrop)
-				HandleSupply(entity as SupplyDrop);
-
-			if (entity is CargoPlane)
-				HandlePlane(entity as CargoPlane);
-		}
-
-		private void HandleSupply(SupplyDrop entity)
-		{
-			var supplyDrop = entity.GetComponent<LootContainer>();
-			if (supplyDrop == null)
-				return;
-
-			var itemContainer = supplyDrop.inventory;
-			if (itemContainer == null || itemContainer.itemList == null)
-				return;
-
-			itemContainer.itemList.Clear();
-			var itemList = _settings.CreateItemList();
-
-			foreach (var item in itemList)
+			var supplyDrops = UnityEngine.Object.FindObjectsOfType<SupplyDrop>();
+			foreach (var supplyDrop in supplyDrops)
 			{
-				Diagnostics.MessageToServer("aire: add item {0}, amount {1} to airdrop container", item.info.name, item.amount);
-				item.MoveToContainer(itemContainer, -1, false);
+				var despawnBehavior = supplyDrop.GetComponent<DespawnBehavior>();
+				if (despawnBehavior == null)
+					continue;
+
+				Diagnostics.MessageToServer("Adding despawn behavior to supply drop:{0}", supplyDrop.net.ID);
+				AddDespawnBehavior(supplyDrop);
+				despawnBehavior.Despawn();
 			}
-
-			var x = entity.transform.position.x;
-			var y = entity.transform.position.y;
-			var z = entity.transform.position.z;
-
-			Diagnostics.MessageTo(_settings.Settings.NotifyOnDropStartedMessage, _settings.Settings.NotifyOnDropStarted, entity.net.ID, x, y, z);
-			if (_settings.Settings.SupplyCrateDespawnTime <= TimeSpan.Zero)
-				return;
-
-			var timeoutInSeconds = Convert.ToSingle(_settings.Settings.SupplyCrateDespawnTime.TotalSeconds);
-			supplyDrop.gameObject.AddComponent<CollisionCheck>();
-
-			var dropCollisionCheck = supplyDrop.gameObject.GetComponent<CollisionCheck>();
-			dropCollisionCheck.TimeoutInSeconds = timeoutInSeconds;
-
-			dropCollisionCheck.NotifyOnCollision = _settings.Settings.NotifyOnCollision;
-			dropCollisionCheck.NotifyOnCollisionMessage = _settings.Settings.NotifyOnCollisionMessage;
-
-			dropCollisionCheck.NotifyOnDespawn = _settings.Settings.NotifyOnDespawn;
-			dropCollisionCheck.NotifyOnDespawnMessage = _settings.Settings.NotifyOnDespawnMessage;
-		}
-
-		private void HandlePlane(CargoPlane plane)
-		{
-			var playerCount = BasePlayer.activePlayerList.Count;
-			if (playerCount < _settings.Settings.MinimumPlayerCount)
-			{
-				Diagnostics.MessageTo(_settings.Settings.NotifyOnPlaneRemovedMessage, _settings.Settings.NotifyOnPlaneRemoved, playerCount);
-				plane.Kill();
-				return;
-			}
-
-			Diagnostics.MessageTo(_settings.Settings.NotifyOnPlaneSpawnedMessage, _settings.Settings.NotifyOnPlaneSpawned);
 		}
 
 		private void Load()
@@ -150,26 +82,7 @@ namespace Oxide.Plugins
 		private void Initialize()
 		{
 			LoadSettings();
-
-			if (_settings.Settings.DropFrequency <= TimeSpan.Zero || _settings.Settings.ConsoleStartOnly)
-				return;
-			StartAirdropTimer();
-		}
-
-		private void StartAirdropTimer()
-		{
-			var dropFrequencyInSeconds = Convert.ToSingle(_settings.Settings.DropFrequency.TotalSeconds);
-			_aidropTimer = timer.Repeat(dropFrequencyInSeconds, 0, SpawnPlane);
-		}
-
-		private void SpawnPlane()
-		{
-			if (_settings.Settings.ConsoleStartOnly)
-				return;
-
-			var plane = GameManager.server.CreateEntity("events/cargo_plane", new Vector3(), new Quaternion());
-			if (plane != null)
-				plane.Spawn();
+			ApplySettings();
 		}
 
 		private void LoadSettings()
@@ -195,6 +108,130 @@ namespace Oxide.Plugins
 			_settingsName = string.IsNullOrEmpty(_settingsName)
 				? "defaultSettings"
 				: _settingsName;
+
+			Diagnostics.MessageToServer(_settings.Settings.ToString());
+		}
+
+		private void ApplySettings()
+		{
+			if (_settings.Settings.DropFrequency <= TimeSpan.Zero || _settings.Settings.ConsoleStartOnly)
+				return;
+			StartAirdropTimer();
+		}
+
+		private void StartAirdropTimer()
+		{
+			var dropFrequencyInSeconds = Convert.ToSingle(_settings.Settings.DropFrequency.TotalSeconds);
+			_aidropTimer = timer.Repeat(dropFrequencyInSeconds, 0, SpawnPlane);
+		}
+
+		// ReSharper disable once UnusedMember.Local
+		void OnPlayerLoot(PlayerLoot lootInventory, BaseEntity targetEntity)
+		{
+			var supplyDrop = targetEntity as SupplyDrop;
+			if (lootInventory == null || targetEntity == null || supplyDrop == null)
+				return;
+
+			Diagnostics.MessageTo(
+				_settings.Settings.NotifyOnPlayerLootingStartedMessage,
+				_settings.Settings.NotifyOnPlayerLootingStarted,
+				lootInventory.GetComponent<BasePlayer>().userID,
+				supplyDrop.net.ID);
+		}
+
+		// ReSharper disable once UnusedMember.Local
+		private void OnEntitySpawned(BaseEntity entity)
+		{
+			if (entity == null || _settings == null)
+				return;
+
+			if (entity is SupplyDrop)
+				HandleSupply(entity as SupplyDrop);
+
+			if (entity is CargoPlane)
+				HandlePlane(entity as CargoPlane);
+		}
+
+		private void HandleSupply(SupplyDrop entity)
+		{
+			var supplyDrop = entity.GetComponent<LootContainer>();
+			if (supplyDrop == null)
+				return;
+
+			var itemContainer = supplyDrop.inventory;
+			supplyDrop.inventory.capacity = _settings.Capacity;
+
+			if (itemContainer == null || itemContainer.itemList == null)
+				return;
+
+			itemContainer.itemList.Clear();
+			var itemList = _settings.CreateItemList();
+
+			Diagnostics.MessageToServer("capacity:{0}", itemContainer.capacity);
+			foreach (var item in itemList)
+			{
+				Diagnostics.MessageToServer("aire: add item {0}, amount {1} to airdrop container", item.info.name, item.amount);
+				item.MoveToContainer(itemContainer, -1, false);
+			}
+
+			var x = entity.transform.position.x;
+			var y = entity.transform.position.y;
+			var z = entity.transform.position.z;
+
+			Diagnostics.MessageTo(_settings.Settings.NotifyOnDropStartedMessage, _settings.Settings.NotifyOnDropStarted, entity.net.ID, x, y, z);
+
+			AddCollisionBehaviorTo(entity);
+			AddDespawnBehavior(entity);
+		}
+
+		private void AddCollisionBehaviorTo(SupplyDrop supplyDrop)
+		{
+			supplyDrop.gameObject.AddComponent<CollisionCheck>();
+
+
+			var dropCollisionCheck = supplyDrop.gameObject.GetComponent<CollisionCheck>();
+
+
+			dropCollisionCheck.NotifyOnCollision = _settings.Settings.NotifyOnCollision;
+			dropCollisionCheck.NotifyOnCollisionMessage = _settings.Settings.NotifyOnCollisionMessage;
+		}
+
+		private void AddDespawnBehavior(SupplyDrop supplyDrop)
+		{
+			if (_settings.Settings.SupplyCrateDespawnTime <= TimeSpan.Zero)
+				return;
+
+			var timeoutInSeconds = Convert.ToSingle(_settings.Settings.SupplyCrateDespawnTime.TotalSeconds);
+
+			supplyDrop.gameObject.AddComponent<DespawnBehavior>();
+			var despawnBehavior = supplyDrop.gameObject.GetComponent<DespawnBehavior>();
+
+			despawnBehavior.TimeoutInSeconds = timeoutInSeconds;
+			despawnBehavior.NotifyOnDespawn = _settings.Settings.NotifyOnDespawn;
+			despawnBehavior.NotifyOnDespawnMessage = _settings.Settings.NotifyOnDespawnMessage;
+		}
+
+		private void HandlePlane(CargoPlane plane)
+		{
+			var playerCount = BasePlayer.activePlayerList.Count;
+			if (playerCount < _settings.Settings.MinimumPlayerCount)
+			{
+				Diagnostics.MessageTo(_settings.Settings.NotifyOnPlaneRemovedMessage, _settings.Settings.NotifyOnPlaneRemoved, playerCount);
+				plane.Kill();
+				return;
+			}
+
+			Diagnostics.MessageTo(_settings.Settings.NotifyOnPlaneSpawnedMessage, _settings.Settings.NotifyOnPlaneSpawned);
+		}
+
+		private void SpawnPlane()
+		{
+			if (_settings.Settings.ConsoleStartOnly)
+				return;
+			Diagnostics.MessageToServer("plane spawned by timer");
+			var plane = GameManager.server.CreateEntity("events/cargo_plane", new Vector3(), new Quaternion());
+			if (plane != null)
+				plane.Spawn();
 		}
 
 		// ReSharper disable once UnusedMember.Local
@@ -218,30 +255,30 @@ namespace Oxide.Plugins
 		}
 
 		[ConsoleCommand("aire.reload")]
-		public void ReloadConfigConsole(ConsoleSystem.Arg arg)
+		// ReSharper disable once UnusedParameter.Local
+		void ReloadConfigConsole(ConsoleSystem.Arg arg)
 		{
-			if (arg.connection == null || arg.connection.player == null)
-				return;
-
-			var player = arg.connection.player as BasePlayer;
-			ReloadConfigChat(player, arg.cmd.name, arg.Args);
-		}
-
-		[ChatCommand("aire.reload")]
-		public void ReloadConfigChat(BasePlayer player, string command, string[] args)
-		{
-			if (!HasPermission(player, "aire.canReload")) 
-				return;
-
-			Diagnostics.MessageToServer("aire:Reloading settings, Player:{0}", player.userID);
+			Diagnostics.MessageToServer("aire:Reloading settings");
 			Cleanup();
 			Initialize();
 		}
 
+		[ChatCommand("aire.reload")]
+		void ReloadConfigChat(BasePlayer player, string command, string[] args)
+		{
+			if (!HasPermission(player, "aire.canReload"))
+				return;
+
+			Diagnostics.MessageToServer("aire: reload called by {0}", player.name);
+			ReloadConfigConsole(new ConsoleSystem.Arg(command));
+		}
+
 		private bool HasPermission(BasePlayer player, string permissionName)
 		{
+			if (player == null)
+				return false;
 			var uid = Convert.ToString(player.userID);
-			if (permission.UserHasPermission(uid, permissionName)) 
+			if (permission.UserHasPermission(uid, permissionName))
 				return true;
 
 			Diagnostics.MessageToPlayer(player, "You have no permission to use this command!");
@@ -249,64 +286,71 @@ namespace Oxide.Plugins
 		}
 
 		[ConsoleCommand("aire.load")]
-		public void LoadConfigConsole(ConsoleSystem.Arg arg)
+		void LoadConfigConsole(ConsoleSystem.Arg arg)
 		{
-			if (arg.connection == null || arg.connection.player == null)
-				return;
-
-			var player = arg.connection.player as BasePlayer;
-			LoadConfigChat(player, arg.cmd.name, arg.Args);
-		}
-
-		[ChatCommand("aire.load")]
-		public void LoadConfigChat(BasePlayer player, string command, string[] args)
-		{
-			if (!HasPermission(player, "aire.canLoad"))
-				return;
-
-			if (args.Length < 1)
+			if (!arg.HasArgs())
 			{
 				Diagnostics.MessageToServer("aire:Command use aire.load my_settings_name");
 				return;
 			}
 
-			var settingsName = args[0];
+			var settingsName = arg.Args[0];
 			if (string.IsNullOrEmpty(settingsName))
 			{
 				Diagnostics.MessageToServer("aire:Command use aire.load my_settings_name");
 				return;
 			}
 
-			Diagnostics.MessageToServer("aire:Loading settings, Player:{0}", player.userID);
-
+			Diagnostics.MessageToServer("aire:Loading settings: {0}", settingsName);
 			Cleanup();
-			PluginSettingsManager.Save(this, args[0]);
+			PluginSettingsManager.Save(this, settingsName);
 			Initialize();
 		}
 
-		[ConsoleCommand("aire.generate")]
-		public void GenerateConfigConsole(ConsoleSystem.Arg arg)
+		[ChatCommand("aire.load")]
+		void LoadConfigChat(BasePlayer player, string command, string[] args)
 		{
-			if (arg.connection == null || arg.connection.player == null)
+			if (!HasPermission(player, "aire.canLoad"))
 				return;
 
-			var player = arg.connection.player as BasePlayer;
-			GenerateConfigChat(player, arg.cmd.name, arg.Args);
+			Diagnostics.MessageToServer("aire: load called by {0}", player.name);
+			LoadConfigConsole(new ConsoleSystem.Arg(command));
 		}
 
-		[ChatCommand("aire.generate")]
-		public void GenerateConfigChat(BasePlayer player, string command, string[] args)
+		[ChatCommand("aire.save")]
+		void SaveConfigChat(BasePlayer player, string command, string[] args)
 		{
-			if (!HasPermission(player, "aire.canGenerate"))
+			if (!HasPermission(player, "aire.canLoad"))
 				return;
 
-			if (args.Length < 1)
+			Diagnostics.MessageToServer("aire: save called by {0}", player.name);
+			SaveConfigConsole(new ConsoleSystem.Arg(command));
+		}
+
+		[ConsoleCommand("aire.save")]
+		void SaveConfigConsole(ConsoleSystem.Arg arg)
+		{
+			var settingsName = !arg.HasArgs()
+				? string.Empty
+				: arg.Args[0];
+			settingsName = string.IsNullOrEmpty(settingsName)
+				? _settingsName
+				: settingsName;
+
+			AirdropSettingsFactory.SaveTo(settingsName, _settings);
+			PluginSettingsManager.Save(this, settingsName);
+		}
+
+		[ConsoleCommand("aire.generate")]
+		void GenerateConfigConsole(ConsoleSystem.Arg arg)
+		{
+			if (!arg.HasArgs())
 			{
 				Diagnostics.MessageToServer("aire:Command use aire.generate my_settings_name");
 				return;
 			}
 
-			var settingsName = args[0];
+			var settingsName = arg.GetString(0);
 			if (string.IsNullOrEmpty(settingsName))
 			{
 				Diagnostics.MessageToServer("aire:Command use aire.generate my_settings_name");
@@ -318,148 +362,186 @@ namespace Oxide.Plugins
 			AirdropSettingsFactory.SaveTo(settingsName, settings);
 		}
 
-		[ConsoleCommand("aire.freq")]
-		public void SetFrequencyConsole(ConsoleSystem.Arg arg)
+		[ChatCommand("aire.generate")]
+		void GenerateConfigChat(BasePlayer player, string command, string[] args)
 		{
-			if (arg.connection == null || arg.connection.player == null)
+			if (!HasPermission(player, "aire.canGenerate"))
 				return;
 
-			var player = arg.connection.player as BasePlayer;
-			SetFrequencyChat(player, arg.cmd.name, arg.Args);
+			Diagnostics.MessageToServer("aire: generate called by {0}", player.name);
+			GenerateConfigConsole(new ConsoleSystem.Arg(command));
+		}
+
+		[ConsoleCommand("aire.freq")]
+		void SetFrequencyConsole(ConsoleSystem.Arg arg)
+		{
+			if (!arg.HasArgs())
+			{
+				Diagnostics.MessageToServer("aire:Command use: aire.frequency 100");
+				return;
+			}
+
+			var frequency = arg.GetInt(0);
+			_settings.Settings.DropFrequency = TimeSpan.FromSeconds(frequency);
+			Diagnostics.MessageToServer("aire:Set frequency to {0} seconds", _settings.Settings.DropFrequency.TotalSeconds);
+
+			Cleanup();
+			ApplySettings();
 		}
 
 		[ChatCommand("aire.freq")]
-		public void SetFrequencyChat(BasePlayer player, string command, string[] args)
+		void SetFrequencyChat(BasePlayer player, string command, string[] args)
 		{
 			if (!HasPermission(player, "aire.canFreq"))
 				return;
 
-			if (args.Length < 1)
-			{
-				Diagnostics.MessageToServer("aire:Command use: aire.frequency 100");
-				return;
-			}
-
-			int frequency;
-			if (!int.TryParse(args[0], out frequency))
-			{
-				Diagnostics.MessageToServer("aire:Command use: aire.frequency 100");
-				return;
-			}
-
-			Diagnostics.MessageToServer("aire:Set frequency to {0} seconds", frequency);
-			_settings.Settings.DropFrequency = TimeSpan.FromSeconds(frequency);
-
-			Cleanup();
-			Initialize();
+			Diagnostics.MessageToServer("aire: freq called by {0}", player.name);
+			SetFrequencyConsole(new ConsoleSystem.Arg(command));
 		}
 
 		[ConsoleCommand("aire.players")]
-		public void SetMinimumPlayerCountConsole(ConsoleSystem.Arg arg)
+		void SetMinimumPlayerCountConsole(ConsoleSystem.Arg arg)
 		{
-			if (arg.connection == null || arg.connection.player == null)
+			if (!arg.HasArgs())
+			{
+				Diagnostics.MessageToServer("aire: Command use: aire.players 100");
 				return;
+			}
 
-			var player = arg.connection.player as BasePlayer;
-			SetMinimumPlayerCountChat(player, arg.cmd.name, arg.Args);
+			var minimumPlayerCount = arg.GetInt(0);
+			_settings.Settings.MinimumPlayerCount = minimumPlayerCount;
+			Diagnostics.MessageToServer("aire:Set minimumPlayerCount to {0}", _settings.Settings.MinimumPlayerCount);
+
+			Cleanup();
+			ApplySettings();
 		}
 
 		[ChatCommand("aire.players")]
-		public void SetMinimumPlayerCountChat(BasePlayer player, string command, string[] args)
+		void SetMinimumPlayerCountChat(BasePlayer player, string command, string[] args)
 		{
 			if (!HasPermission(player, "aire.canPlayers"))
 				return;
 
-			if (args.Length < 1)
-			{
-				Diagnostics.MessageToServer("aire:Command use: aire.players 100");
-				return;
-			}
-
-			int minimumPlayerCount;
-			if (!int.TryParse(args[0], out minimumPlayerCount))
-			{
-				Diagnostics.MessageToServer("aire:Command use: aire.players 100");
-				return;
-			}
-
-			Diagnostics.MessageToServer("aire:Set minimumPlayerCount to {0}", minimumPlayerCount);
-			_settings.Settings.MinimumPlayerCount = minimumPlayerCount;
-
-			Cleanup();
-			Initialize();
+			Diagnostics.MessageToServer("aire: players called by {0}", player.name);
+			SetMinimumPlayerCountConsole(new ConsoleSystem.Arg(command));
 		}
 
 		[ConsoleCommand("aire.console")]
-		public void SetConsoleStartOnlyConsole(ConsoleSystem.Arg arg)
+		void SetConsoleStartOnlyConsole(ConsoleSystem.Arg arg)
 		{
-			if (arg.connection == null || arg.connection.player == null)
-				return;
-
-			var player = arg.connection.player as BasePlayer;
-			SetConsoleStartOnlyChat(player, arg.cmd.name, arg.Args);
-		}
-
-		[ChatCommand("aire.console")]
-		public void SetConsoleStartOnlyChat(BasePlayer player, string command, string[] args)
-		{
-			if (!HasPermission(player, "aire.canConsole"))
-				return;
-
-			if (args.Length < 1)
+			if (!arg.HasArgs())
 			{
-				Diagnostics.MessageToServer("aire:Command use: aire.console 1");
+				Diagnostics.MessageToServer("aire:Command use: aire.console true");
 				return;
 			}
 
-			bool consoleStartOnly;
-			if (!bool.TryParse(args[0], out consoleStartOnly))
-			{
-				Diagnostics.MessageToServer("aire:Command use: aire.console 1");
-				return;
-			}
+			var consoleStartOnly = arg.GetBool(0);
 
 			Diagnostics.MessageToServer("aire:Set ConsoleStartOnly to {0}", consoleStartOnly);
 			_settings.Settings.ConsoleStartOnly = consoleStartOnly;
 
 			Cleanup();
-			Initialize();
+			ApplySettings();
+		}
+
+		[ChatCommand("aire.console")]
+		void SetConsoleStartOnlyChat(BasePlayer player, string command, string[] args)
+		{
+			if (!HasPermission(player, "aire.canConsole"))
+				return;
+
+			Diagnostics.MessageToServer("aire: console called by {0}", player.name);
+			SetConsoleStartOnlyConsole(new ConsoleSystem.Arg(command));
 		}
 
 		[ConsoleCommand("aire.despawn")]
-		public void SetSupplyCrateDespawnTimeConsole(ConsoleSystem.Arg arg)
+		void SetSupplyCrateDespawnTimeConsole(ConsoleSystem.Arg arg)
 		{
-			if (arg.connection == null || arg.connection.player == null)
+			if (!arg.HasArgs())
+			{
+				Diagnostics.MessageToServer("aire:Command use: aire.despawn 100");
 				return;
+			}
 
-			var player = arg.connection.player as BasePlayer;
-			SetSupplyCrateDespawnTimeChat(player, arg.cmd.name, arg.Args);
+			var despawnTimeInSeconds = arg.GetInt(0);
+			_settings.Settings.SupplyCrateDespawnTime = TimeSpan.FromSeconds(despawnTimeInSeconds);
+			Diagnostics.MessageToServer("aire:Set SupplyCrateDespawnTime to {0} seconds", _settings.Settings.SupplyCrateDespawnTime.TotalSeconds);
+
+			Cleanup();
+			ApplySettings();
 		}
 
 		[ChatCommand("aire.despawn")]
-		public void SetSupplyCrateDespawnTimeChat(BasePlayer player, string command, string[] args)
+		void SetSupplyCrateDespawnTimeChat(BasePlayer player, string command, string[] args)
 		{
 			if (!HasPermission(player, "aire.canDespawn"))
 				return;
 
-			if (args.Length < 1)
+			Diagnostics.MessageToServer("aire: despawn called by {0}", player.name);
+			SetSupplyCrateDespawnTimeConsole(new ConsoleSystem.Arg(command));
+		}
+
+		[ConsoleCommand("aire.set")]
+		void SetItemSettingsConsole(ConsoleSystem.Arg arg)
+		{
+			if (!arg.HasArgs())
 			{
-				Diagnostics.MessageToServer("aire:Command use: aire.despawn 100");
+				PrintSetItemSettingsUsage();
 				return;
 			}
 
-			int despawnTimeInSeconds;
-			if (!int.TryParse(args[0], out despawnTimeInSeconds))
+			string itemName;
+			float chance;
+			int minAmount;
+			int maxAmount;
+
+			try
 			{
-				Diagnostics.MessageToServer("aire:Command use: aire.despawn 100");
+				itemName = arg.GetString(0);
+				chance = arg.GetFloat(1);
+				minAmount = arg.GetInt(2);
+				maxAmount = arg.GetInt(3);
+			}
+			catch (Exception)
+			{
+				PrintSetItemSettingsUsage();
 				return;
 			}
 
-			Diagnostics.MessageToServer("aire:Set SupplyCrateDespawnTime to {0} seconds", despawnTimeInSeconds);
-			_settings.Settings.SupplyCrateDespawnTime = TimeSpan.FromSeconds(despawnTimeInSeconds);
+			foreach (var group in _settings.ItemsByGroups)
+			{
+				var item = group.ItemSettings.FirstOrDefault(f => f.Name.Equals(itemName, StringComparison.OrdinalIgnoreCase));
+				if (item == null)
+					continue;
 
-			Cleanup();
-			Initialize();
+				item.ChanceInPercent = chance;
+				item.MinAmount = minAmount;
+				item.MaxAmount = maxAmount;
+
+				Diagnostics.MessageToServer(
+				"aire:Set settings to item:{0}, chance:{1}, min_amount:{2}, max_amount:{3}",
+				itemName,
+				chance,
+				minAmount,
+				maxAmount);
+			}
+		}
+
+		private static void PrintSetItemSettingsUsage()
+		{
+			Diagnostics.MessageToServer("aire:Command use: aire.set item_name [chance] [min] [max].");
+			Diagnostics.MessageToServer("aire:Example: aire.set rocket_launcher 15 1 1.");
+			Diagnostics.MessageToServer("aire:default chance=0, min=0, max=0.");
+		}
+
+		[ChatCommand("aire.set")]
+		void SetItemSettingsChat(BasePlayer player, string command, string[] args)
+		{
+			if (!HasPermission(player, "aire.canSet"))
+				return;
+
+			Diagnostics.MessageToServer("aire: set called by {0}", player.name);
+			SetItemSettingsConsole(new ConsoleSystem.Arg(command));
 		}
 	}
 }
@@ -476,51 +558,88 @@ namespace AirdropExtended.Collision
 {
 	public sealed class CollisionCheck : MonoBehaviour
 	{
-		private const float DefaultSupplyStayTime = 300.0f;
 		private const string DefaultNotifyOnCollisionMessage = "Supply drop {0} has landed at {1},{2},{3}";
-		private const string DefaultNotifyOnDespawnMessage = "Supply drop {0} has been despawned at {1},{2},{3}";
 
-		private readonly Timer _timer = Interface.Oxide.GetLibrary<Timer>("Timer");
-		private Timer.TimerInstance _destructionTimer;
-		public float TimeoutInSeconds { get; set; }
+		private bool _isTriggered;
 
 		public string NotifyOnCollisionMessage { get; set; }
 		public bool NotifyOnCollision { get; set; }
 
-		public string NotifyOnDespawnMessage { get; set; }
-		public bool NotifyOnDespawn { get; set; }
-
 		public CollisionCheck()
 		{
-			TimeoutInSeconds = DefaultSupplyStayTime;
-
 			NotifyOnCollisionMessage = DefaultNotifyOnCollisionMessage;
 			NotifyOnCollision = true;
-
-			NotifyOnDespawnMessage = DefaultNotifyOnDespawnMessage;
-			NotifyOnDespawn = true;
 		}
 
 		// ReSharper disable once UnusedMember.Local
 		// ReSharper disable once UnusedParameter.Local
 		void OnCollisionEnter(UnityEngine.Collision col)
 		{
+			if (_isTriggered)
+				return;
+
+			_isTriggered = true;
+
 			var baseEntity = GetComponent<BaseEntity>();
-			var landedX = col.gameObject.transform.localPosition.x;
-			var landedY = col.gameObject.transform.localPosition.y;
-			var landedZ = col.gameObject.transform.localPosition.z;
+			if (baseEntity.model != null)
+			{
+				Diagnostics.Diagnostics.MessageToServer("name:{0}", baseEntity.model.name);
+				Diagnostics.Diagnostics.MessageToServer("tag:{0}", baseEntity.model.tag);
+			}
+
+			Diagnostics.Diagnostics.MessageToServer("baseentity name:{0}", baseEntity.name);
+
+			var landedX = baseEntity.transform.localPosition.x;
+			var landedY = baseEntity.transform.localPosition.y;
+			var landedZ = baseEntity.transform.localPosition.z;
 
 			Diagnostics.Diagnostics.MessageTo(NotifyOnCollisionMessage, NotifyOnCollision, baseEntity.net.ID, landedX, landedY, landedZ);
-			_destructionTimer = _timer.Once(TimeoutInSeconds * 60, () =>
+
+			var despawnBehavior = baseEntity.GetComponent<DespawnBehavior>();
+			if (despawnBehavior != null)
+				despawnBehavior.Despawn();
+		}
+	}
+
+	public sealed class DespawnBehavior : MonoBehaviour
+	{
+		private const string DefaultNotifyOnDespawnMessage = "Supply drop {0} has been despawned at {1},{2},{3}";
+		private const float DefaultSupplyStayTime = 300.0f;
+
+		private bool _isTriggered;
+
+		public float TimeoutInSeconds { get; set; }
+
+		public string NotifyOnDespawnMessage { get; set; }
+		public bool NotifyOnDespawn { get; set; }
+
+		public DespawnBehavior()
+		{
+			TimeoutInSeconds = DefaultSupplyStayTime;
+			NotifyOnDespawnMessage = DefaultNotifyOnDespawnMessage;
+			NotifyOnDespawn = false;
+		}
+
+		public void Despawn()
+		{
+			if (_isTriggered)
+				return;
+
+			var baseEntity = GetComponent<BaseEntity>();
+
+			Diagnostics.Diagnostics.MessageToServer("starting timer:{0}", TimeoutInSeconds);
+			_isTriggered = true;
+
+			Interface.Oxide.GetLibrary<Timer>("Timer").Once(TimeoutInSeconds, () =>
 			{
+				Diagnostics.Diagnostics.MessageToServer("destruction callback has been called");
+				Diagnostics.Diagnostics.MessageToServer("destruction callback called for {0}", baseEntity.net.ID);
 				var x = baseEntity.transform.position.x;
 				var y = baseEntity.transform.position.y;
 				var z = baseEntity.transform.position.z;
 
 				Diagnostics.Diagnostics.MessageTo(NotifyOnDespawnMessage, NotifyOnDespawn, baseEntity.net.ID, x, y, z);
 				baseEntity.KillMessage();
-				_destructionTimer.Destroy();
-				_destructionTimer = null;
 			});
 		}
 	}
@@ -588,14 +707,25 @@ namespace AirdropExtended.Airdrop.Settings
 {
 	public sealed class AirdropSettings
 	{
-		public const int MaxCapacity = 24;
+		public const int MaxCapacity = 18;
+
+		private int _capacity = MaxCapacity;
 
 		public AirdropSettings()
 		{
 			Capacity = MaxCapacity;
 		}
 
-		public int Capacity { get; set; }
+		public int Capacity
+		{
+			get { return _capacity; }
+			set
+			{
+				_capacity = value > MaxCapacity || value < 0
+					? MaxCapacity
+					: value;
+			}
+		}
 
 		public List<AirdropItemGroup> ItemsByGroups { get; set; }
 
@@ -626,9 +756,8 @@ namespace AirdropExtended.Airdrop.Settings
 				if (amount == 0)
 					continue;
 
-				Diagnostics.Diagnostics.MessageToServer("created item {0}, amount:{1}", airdropItemSetting.Name, amount);
 				var pickedItem = ItemManager.CreateByName(airdropItemSetting.Name, amount);
-				if (airdropItemGroup.Name == "Blueprint")
+				if (airdropItemGroup.Name.Equals("Blueprint", StringComparison.OrdinalIgnoreCase))
 					pickedItem.isBlueprint = true;
 				pickedItems[pickedItemsNumber] = pickedItem;
 
@@ -641,17 +770,69 @@ namespace AirdropExtended.Airdrop.Settings
 
 	public sealed class AirdropItemGroup
 	{
+		private int _maximumAmountInLoot;
 		public string Name { get; set; }
-		public int MaximumAmountInLoot { get; set; }
+
+		public int MaximumAmountInLoot
+		{
+			get { return _maximumAmountInLoot; }
+			set { _maximumAmountInLoot = value < 0 ? 0 : value; }
+		}
+
 		public List<AirdropItemSetting> ItemSettings { get; set; }
 	}
 
-	public struct AirdropItemSetting
+	public class AirdropItemSetting
 	{
-		public string Name { get; set; }
-		public float ChanceInPercent { get; set; }
-		public int MinAmount { get; set; }
-		public int MaxAmount { get; set; }
+		private float _chanceInPercent;
+		private string _name;
+		private int _minAmount;
+		private int _maxAmount;
+
+		public string Name
+		{
+			get { return _name; }
+			set
+			{
+				if (string.IsNullOrEmpty(value))
+					throw new ArgumentException("Item name should not be null", "value");
+				_name = value;
+			}
+		}
+
+		public float ChanceInPercent
+		{
+			get { return _chanceInPercent; }
+			set { _chanceInPercent = value < 0 ? 0 : value; }
+		}
+
+		public int MinAmount
+		{
+			get { return _minAmount; }
+			set
+			{
+				if (value < 0)
+					_minAmount = 0;
+				else if (value > MaxAmount)
+					_minAmount = MaxAmount;
+				else
+					_minAmount = value;
+			}
+		}
+
+		public int MaxAmount
+		{
+			get { return _maxAmount; }
+			set
+			{
+				if (value < 0)
+					_maxAmount = 0;
+				else if (value < MinAmount)
+					_maxAmount = MinAmount;
+				else
+					_maxAmount = value;
+			}
+		}
 	}
 
 	public sealed class CommonSettings
@@ -769,7 +950,7 @@ namespace AirdropExtended.Airdrop.Settings
 				{"Food", GenerateAmountMappingForFood},
 				{"Attire", def => new[] {1, 1}},
 				{"Items", def => new[] {1, 1}},
-				{"Ammunition", def => new[] {32, 48}},
+				{"Ammunition", GenerateAmountMappingForAmmunition},
 				{"Misc", def => new[] {1, 1}},
 				{"Construction", GenerateAmountMappingForConstruction},
 				{"Medical", GenerateMappingForMedical},
@@ -795,6 +976,13 @@ namespace AirdropExtended.Airdrop.Settings
 			return new[] { 5, 10 };
 		}
 
+		private static int[] GenerateAmountMappingForAmmunition(ItemDefinition def)
+		{
+			return def.shortname.Contains("rocket", CompareOptions.OrdinalIgnoreCase)
+				? new[] { 1, 3 }
+				: new[] { 32, 48 };
+		}
+
 		private static int[] GenerateAmountMappingForConstruction(ItemDefinition itemDefinition)
 		{
 			var blueprint = ItemManager.FindBlueprint(itemDefinition);
@@ -816,7 +1004,7 @@ namespace AirdropExtended.Airdrop.Settings
 		private static int[] GenerateMappingForTool(ItemDefinition itemDefinition)
 		{
 			var largeAmountItems = new[] { "explosive.timed" };
-			var defaultItems = new[] { "rock", "torch", "camera_tool" };
+			var defaultItems = new[] { "rock", "torch", "camera" };
 
 			if (largeAmountItems.Contains(itemDefinition.shortname))
 				return new[] { 3, 5 };
@@ -847,16 +1035,16 @@ namespace AirdropExtended.Airdrop.Settings
 		private static readonly Dictionary<string, int> DefaultCategoryAmountMapping = new Dictionary<string, int>
 			{
 				{"Food", 1},
-				{"Attire", 4},
-				{"Items", 3},
-				{"Ammunition", 2},
-				{"Construction", 3},
+				{"Attire", 2},
+				{"Items", 1},
+				{"Ammunition", 1},
+				{"Construction", 2},
 				{"Medical", 2},
 				{"Tool", 2},
 				{"Traps", 1},
 				{"Misc", 0},
 				{"Weapon", 2},
-				{"Resources", 3},
+				{"Resources", 2},
 				{"Blueprint", 2}
 			};
 
@@ -896,13 +1084,17 @@ namespace AirdropExtended.Airdrop.Settings
 				.Select(group =>
 				{
 					var categoryName = group.Key.ToString();
+					int defaultAmount;
+					DefaultCategoryAmountMapping.TryGetValue(categoryName, out defaultAmount);
 					return new AirdropItemGroup
 					{
 						Name = categoryName,
 						ItemSettings = group
 							.Select(itemDefinition =>
 							{
-								var amountMappingArray = DefaultAmountByCategoryMapping[categoryName](itemDefinition);
+								Func<ItemDefinition, int[]> amountFunc;
+								DefaultAmountByCategoryMapping.TryGetValue(categoryName, out amountFunc);
+								var amountMappingArray = amountFunc == null ? new[] { 0, 0 } : amountFunc(itemDefinition);
 								return new AirdropItemSetting
 								{
 
@@ -913,7 +1105,7 @@ namespace AirdropExtended.Airdrop.Settings
 								};
 							})
 							.ToList(),
-						MaximumAmountInLoot = DefaultCategoryAmountMapping[categoryName]
+						MaximumAmountInLoot = defaultAmount
 					};
 				})
 				.ToList();

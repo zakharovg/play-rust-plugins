@@ -26,3 +26,4 @@ H:\work\rust\airdrop\AirdropSettings\AirdropSettings\bin\Debug\System.Data.SQLit
 H:\work\rust\airdrop\AirdropSettings\AirdropSettings\obj\Debug\AirdropSettings.dll
 H:\work\rust\airdrop\AirdropSettings\AirdropSettings\obj\Debug\AirdropSettings.pdb
 H:\work\rust\airdrop\AirdropSettings\AirdropSettings\bin\Debug\UnityEngine.dll
+H:\work\rust\airdrop\AirdropSettings\AirdropSettings\obj\Debug\AirdropSettings.csprojResolveAssemblyReference.cache
