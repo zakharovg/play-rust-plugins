@@ -4,8 +4,8 @@ using AirdropExtended.Airdrop;
 using AirdropExtended.Behaviors;
 using AirdropExtended.Commands;
 using AirdropExtended.Diagnostics;
-using AirdropExtended.Generation;
 using AirdropExtended.Permissions;
+using AirdropExtended.Settings.Generate;
 using AirdropExtended.WeightedSearch;
 using JetBrains.Annotations;
 using Oxide.Core;
@@ -1571,7 +1571,7 @@ namespace AirdropExtended.Airdrop.Settings
 	}
 }
 
-namespace AirdropExtended.Generation
+namespace AirdropExtended.Settings.Generate
 {
 	public static class AirdropSettingsFactory
 	{
