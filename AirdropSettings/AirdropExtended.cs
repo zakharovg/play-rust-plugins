@@ -53,6 +53,18 @@ namespace Oxide.Plugins
 			PermissionService.RegisterPermissions(this, commands);
 			_commands = commands.ToDictionary(c => c.Name, c => c);
 
+			var schedules = UnityEngine.Object.FindObjectsOfType<EventSchedule>();
+			foreach (var schedule in schedules)
+			{
+				Diagnostics.MessageToServer("Disable schedule:{0}", schedule.GetInstanceID());
+				var triggeredEvent = schedule.GetComponents<TriggeredEvent>();
+				foreach (var @event in triggeredEvent)
+				{
+					Diagnostics.MessageToServer("destroy event:{0}", @event.GetInstanceID());
+					UnityEngine.Object.Destroy(@event);
+				}
+			}
+
 			foreach (var pair in _commands)
 			{
 				cmd.AddChatCommand(pair.Key, this, string.Empty);
@@ -72,14 +84,17 @@ namespace Oxide.Plugins
 
 		protected override object OnCallHook(string name, object[] args)
 		{
-			if (_commands == null || args == null || args.Length <= 0)
+			if (!string.IsNullOrEmpty(name) || _commands == null || args == null || args.Length <= 0)
 				return base.OnCallHook(name, args);
 
 			var consoleSystemArg = args[0] as ConsoleSystem.Arg;
 			var basePlayer = args[0] as BasePlayer;
 
-			if (consoleSystemArg != null)
+			if (consoleSystemArg != null && consoleSystemArg.cmd != null)
+			{
+				Diagnostics.MessageToServer("exec hook:{0}", name);
 				return FireConsoleCommand(name, args, consoleSystemArg);
+			}
 
 			if (basePlayer != null)
 				return FirePlayerCommand(name, args, basePlayer);
@@ -89,6 +104,9 @@ namespace Oxide.Plugins
 
 		private object FireConsoleCommand(string name, object[] args, ConsoleSystem.Arg consoleSystemArg)
 		{
+			if (consoleSystemArg.cmd.parent == null)
+				return null;
+
 			AirdropExtendedCommand command;
 			_commands.TryGetValue(consoleSystemArg.cmd.namefull, out command);
 
@@ -102,7 +120,7 @@ namespace Oxide.Plugins
 		private object FirePlayerCommand(string name, object[] args, BasePlayer basePlayer)
 		{
 			AirdropExtendedCommand command;
-			if (args.Length <= 1 || args[1] == null)
+			if (args == null || args.Length <= 1 || args[1] == null)
 				return base.OnCallHook(name, args);
 
 			var cmdName = args[1] as string ?? string.Empty;
@@ -145,7 +163,8 @@ namespace Oxide.Plugins
 
 		private void OnEntitySpawned(BaseEntity entity)
 		{
-			_airdropController.OnEntitySpawned(entity);
+			if (_airdropController.IsInitialized())
+				_airdropController.OnEntitySpawned(entity);
 		}
 	}
 }
@@ -257,11 +276,6 @@ namespace AirdropExtended.Behaviors
 			_baseEntity.KillMessage();
 
 			OnDestroy();
-		}
-
-		private void DestroyTimer()
-		{
-
 		}
 
 		void OnDestroy()
@@ -1114,7 +1128,7 @@ namespace AirdropExtended.Airdrop
 			_context = context;
 		}
 
-		private bool IsInitialized()
+		public bool IsInitialized()
 		{
 			return _context != null && _context.Settings != null;
 		}
@@ -1171,8 +1185,14 @@ namespace AirdropExtended.Airdrop
 
 		private void FillAirdropContainer(ItemContainer itemContainer)
 		{
+			if (_context == null || _context.Settings == null)
+				return;
+			Diagnostics.Diagnostics.MessageToServer("clearing item list");
 			itemContainer.itemList.Clear();
+			Diagnostics.Diagnostics.MessageToServer("setting capacity, settings:{0}", _context.Settings == null);
 			itemContainer.capacity = _context.Settings.Capacity;
+
+			Diagnostics.Diagnostics.MessageToServer("creating item list");
 			var itemList = _context.Settings.CreateItemList();
 
 			foreach (var item in itemList)
@@ -1732,8 +1752,8 @@ namespace AirdropExtended.Settings.Generate
 							{
 								Func<ItemDefinition, int[]> amountFunc;
 								DefaultAmountByCategoryMapping.TryGetValue(categoryName, out amountFunc);
-								var amountMappingArray = amountFunc == null 
-									? new[] { 0, 0 } 
+								var amountMappingArray = amountFunc == null
+									? new[] { 0, 0 }
 									: amountFunc(itemDefinition);
 
 								return new AirdropItem

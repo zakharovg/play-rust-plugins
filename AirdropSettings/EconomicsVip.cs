@@ -12,7 +12,6 @@ using Oxide.Core;
 using Oxide.Core.Configuration;
 using Oxide.Core.Logging;
 using Oxide.Core.Plugins;
-using Lua = KeraLua.Lua;
 
 namespace Oxide.Plugins
 {
