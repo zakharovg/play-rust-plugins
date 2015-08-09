@@ -7,10 +7,11 @@
     <ProjectGuid>{0479E43E-DD9A-416C-A683-B8D94E73FBB9}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>AirdropSettings</RootNamespace>
+    <RootNamespace>Oxide.Plugins</RootNamespace>
     <AssemblyName>AirdropSettings</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -102,16 +103,19 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AirdropExtendedPlugin.cs" />
+    <Compile Include="AirdropExtended.cs" />
+    <Compile Include="EconomicsVip.cs" />
     <Compile Include="PrintItemNames.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="airdropExtended_defaultSettings.json" />
+    <None Include="EconomicsVip.lua" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>xcopy /Y $(ProjectDir)AirdropExtendedPlugin.cs H:\steam\rust_server\server\my_server_identity\oxide\plugins</PostBuildEvent>
+    <PostBuildEvent>xcopy /Y $(ProjectDir)AirdropExtended.cs H:\steam\rust_server_copy\server\my_server_identity\oxide\plugins
+xcopy /Y $(ProjectDir)EconomicsVip.lua H:\steam\rust_server_copy\server\my_server_identity\oxide\plugins</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

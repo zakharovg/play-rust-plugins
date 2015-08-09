@@ -27,3 +27,15 @@ H:\work\rust\airdrop\AirdropSettings\AirdropSettings\obj\Debug\AirdropSettings.d
 H:\work\rust\airdrop\AirdropSettings\AirdropSettings\obj\Debug\AirdropSettings.pdb
 H:\work\rust\airdrop\AirdropSettings\AirdropSettings\bin\Debug\UnityEngine.dll
 H:\work\rust\airdrop\AirdropSettings\AirdropSettings\obj\Debug\AirdropSettings.csprojResolveAssemblyReference.cache
+H:\work\rust\airdrop\AirdropSettings\AirdropSettings\bin\Debug\Behave.Unity.Runtime.dll
+H:\work\rust\airdrop\AirdropSettings\AirdropSettings\bin\Debug\RustBuild.dll
+H:\work\rust\airdrop\AirdropSettings\AirdropSettings\bin\Debug\ConvexHull.dll
+H:\work\rust\airdrop\AirdropSettings\AirdropSettings\bin\Debug\Assembly-CSharp-firstpass.dll
+H:\work\rust\airdrop\AirdropSettings\AirdropSettings\bin\Debug\UnityEngine.UI.dll
+H:\work\rust\airdrop\AirdropSettings\AirdropSettings\bin\Debug\Ionic.Zip.Reduced.dll
+H:\work\rust\airdrop\AirdropSettings\AirdropSettings\bin\Debug\UnityEngine.CrashLog.dll
+H:\work\rust\airdrop\AirdropSettings\AirdropSettings\bin\Debug\EasyAntiCheat.Server.dll
+H:\work\rust\airdrop\AirdropSettings\AirdropSettings\bin\Debug\LZ4n.dll
+H:\work\rust\airdrop\AirdropSettings\AirdropSettings\bin\Debug\DestMath.dll
+H:\work\rust\airdrop\AirdropSettings\AirdropSettings\bin\Debug\protobuf-net.dll
+H:\work\rust\airdrop\AirdropSettings\AirdropSettings\bin\Debug\Behave.Unity.Assets.dll
