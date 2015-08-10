@@ -52,21 +52,6 @@ namespace Oxide.Plugins
 			Save();
 		}
 
-		private static void DisableEventSystem()
-		{
-			var schedules = UnityEngine.Object.FindObjectsOfType<EventSchedule>();
-			foreach (var schedule in schedules)
-			{
-				Diagnostics.MessageToServer("Disable built-in event schedule:{0}", schedule.GetInstanceID());
-				var triggeredEvent = schedule.GetComponents<TriggeredEvent>();
-				foreach (var @event in triggeredEvent)
-				{
-					Diagnostics.MessageToServer("destroy event:{0}", @event.GetInstanceID());
-					UnityEngine.Object.Destroy(@event);
-				}
-			}
-		}
-
 		private void Bootstrap()
 		{
 			_pluginSettingsRepository = new PluginSettingsRepository(Config);
@@ -88,19 +73,34 @@ namespace Oxide.Plugins
 			}
 		}
 
+		private void Load()
+		{
+			_settingsContext.SettingsName = _pluginSettingsRepository.LoadSettingsName();
+			_settingsContext.Settings = AidropSettingsRepository.LoadFrom(_settingsContext.SettingsName);
+			_airdropController.ApplySettings();
+		}
+
+		private static void DisableEventSystem()
+		{
+			var schedules = UnityEngine.Object.FindObjectsOfType<EventSchedule>();
+			foreach (var schedule in schedules)
+			{
+				Diagnostics.MessageToServer("Disable built-in event schedule:{0}", schedule.GetInstanceID());
+				var triggeredEvent = schedule.GetComponents<TriggeredEvent>();
+				foreach (var @event in triggeredEvent)
+				{
+					Diagnostics.MessageToServer("destroy event:{0}", @event.GetInstanceID());
+					UnityEngine.Object.Destroy(@event);
+				}
+			}
+		}
+
 		private void Save()
 		{
 			_pluginSettingsRepository.SaveSettingsName(_settingsContext.SettingsName);
 			AidropSettingsRepository.SaveTo(_settingsContext.SettingsName, _settingsContext.Settings);
 
 			SaveConfig();
-		}
-
-		private void Load()
-		{
-			_settingsContext.SettingsName = _pluginSettingsRepository.LoadSettingsName();
-			_settingsContext.Settings = AidropSettingsRepository.LoadFrom(_settingsContext.SettingsName);
-			_airdropController.ApplySettings();
 		}
 
 		private void Unload()
@@ -116,7 +116,7 @@ namespace Oxide.Plugins
 				return;
 
 			var commonSettings = _settingsContext.Settings.CommonSettings;
-			
+
 			Diagnostics.MessageTo(
 				commonSettings.NotifyOnPlayerLootingStartedMessage,
 				commonSettings.NotifyOnPlayerLootingStarted,
@@ -155,7 +155,7 @@ namespace Oxide.Plugins
 		{
 			_commands["aire.reload"].ExecuteFromChat(player, command, args);
 		}
-		
+
 		[ChatCommand("aire.players")]
 		private void SetPlayersChatCommand(BasePlayer player, string command, string[] args)
 		{
@@ -768,7 +768,7 @@ namespace AirdropExtended.Commands
 
 			var consoleStartOnly = arg.GetBool(0);
 
-			_context.Settings.CommonSettings.ConsoleStartOnly = consoleStartOnly;
+			_context.Settings.CommonSettings.AdminCommandDropEnabled = consoleStartOnly;
 
 			Diagnostics.Diagnostics.MessageToServerAndPlayer(player, "Setting console start only to {0}", consoleStartOnly);
 			_controller.ApplySettings();
@@ -1120,24 +1120,41 @@ namespace AirdropExtended.Airdrop
 		public static TimeSpan DefaultTimerInterval = TimeSpan.FromHours(1);
 
 		private Timer.TimerInstance _aidropTimer;
+		private AirdropSettings _settings;
 
-		public void StartAirdropTimer(TimeSpan interval)
+		public void StartAirdropTimer(AirdropSettings settings)
 		{
-			if (interval <= TimeSpan.Zero)
-				interval = DefaultTimerInterval;
+			if (settings == null) throw new ArgumentNullException("settings");
+			_settings = settings;
 
-			StopAirdropTimer();
+			if (!settings.CommonSettings.PluginAirdropTimerEnabled)
+				return;
 
-			var dropFrequence = Convert.ToSingle(interval.TotalSeconds);
-			_aidropTimer = Interface.GetMod().GetLibrary<Timer>().Repeat(dropFrequence, 0, SpawnPlane);
+			var dropFrequence = Convert.ToSingle(settings.CommonSettings.DropFrequency.TotalSeconds);
+			_aidropTimer = Interface.GetMod().GetLibrary<Timer>().Repeat(dropFrequence, 0, Tick);
 		}
 
-		private void SpawnPlane()
+		private void Tick()
 		{
-			Diagnostics.Diagnostics.MessageToServer("plane spawned by aire timer");
-			var plane = GameManager.server.CreateEntity("assets/bundled/prefabs/events/cargo_plane.prefab", new Vector3(), new Quaternion());
-			if (plane != null)
-				plane.Spawn();
+			var playerCount = BasePlayer.activePlayerList.Count;
+			if (playerCount >= _settings.CommonSettings.MinimumPlayerCount)
+			{
+				Diagnostics.Diagnostics.MessageToServer("running timed airdrop");
+				
+				var plane = GameManager.server.CreateEntity(
+					"assets/bundled/prefabs/events/cargo_plane.prefab", 
+					new Vector3(),
+					new Quaternion());
+				if (plane != null)
+					plane.Spawn();
+			}
+			else
+			{
+				Diagnostics.Diagnostics.MessageTo(
+					_settings.CommonSettings.NotifyOnPlaneRemovedMessage,
+					_settings.CommonSettings.NotifyOnPlaneRemoved,
+					playerCount);
+			}
 		}
 
 		public void StopAirdropTimer()
@@ -1171,15 +1188,21 @@ namespace AirdropExtended.Airdrop
 			var settings = _context.Settings ?? AirdropSettingsFactory.CreateDefault();
 			AirdropSettingsValidator.Validate(settings);
 
+			CleanupServices();
+			_context.Settings = settings;
+			InitializeServices(settings);
+		}
+
+		private void CleanupServices()
+		{
 			_timerService.StopAirdropTimer();
 			SupplyDropBehaviorService.RemoveCustomBehaviorsFromSupplyDrops();
+		}
+
+		private void InitializeServices(AirdropSettings settings)
+		{
 			SupplyDropBehaviorService.AttachCustomBehaviorsToSupplyDrops(settings);
-
-			_context.Settings = settings;
-			if (settings.CommonSettings.ConsoleStartOnly)
-				return;
-
-			_timerService.StartAirdropTimer(settings.CommonSettings.DropFrequency);
+			_timerService.StartAirdropTimer(settings);
 		}
 
 		public void OnEntitySpawned(BaseEntity entity)
@@ -1191,7 +1214,7 @@ namespace AirdropExtended.Airdrop
 				HandleSupply(entity as SupplyDrop);
 
 			if (entity is CargoPlane)
-				HandlePlane(entity as CargoPlane);
+				NotifyOnPlane();
 		}
 
 		private void HandleSupply(SupplyDrop entity)
@@ -1220,29 +1243,17 @@ namespace AirdropExtended.Airdrop
 		{
 			if (_context == null || _context.Settings == null)
 				return;
-			Diagnostics.Diagnostics.MessageToServer("clearing item list");
 			itemContainer.itemList.Clear();
-			Diagnostics.Diagnostics.MessageToServer("setting capacity, settings:{0}", _context.Settings == null);
 			itemContainer.capacity = _context.Settings.Capacity;
 
-			Diagnostics.Diagnostics.MessageToServer("creating item list");
 			var itemList = _context.Settings.CreateItemList();
-
 			foreach (var item in itemList)
 				item.MoveToContainer(itemContainer, -1, false);
 		}
 
-		private void HandlePlane(CargoPlane plane)
+		private void NotifyOnPlane()
 		{
-			var playerCount = BasePlayer.activePlayerList.Count;
-			Diagnostics.Diagnostics.MessageToServer("Player count is:{0}", playerCount);
-			if (playerCount < _context.Settings.CommonSettings.MinimumPlayerCount)
-			{
-				Diagnostics.Diagnostics.MessageTo(_context.Settings.CommonSettings.NotifyOnPlaneRemovedMessage, _context.Settings.CommonSettings.NotifyOnPlaneRemoved, playerCount);
-				plane.KillMessage();
-			}
-			else
-				Diagnostics.Diagnostics.MessageTo(_context.Settings.CommonSettings.NotifyOnPlaneSpawnedMessage, _context.Settings.CommonSettings.NotifyOnPlaneSpawned);
+			Diagnostics.Diagnostics.MessageTo(_context.Settings.CommonSettings.NotifyOnPlaneSpawnedMessage, _context.Settings.CommonSettings.NotifyOnPlaneSpawned);
 		}
 
 		public void Cleanup()
@@ -1492,9 +1503,13 @@ namespace AirdropExtended.Airdrop.Settings
 		private const string DefaultNotifyOnCollisionMessage = "Supply drop {0} has landed at {1},{2},{3}";
 		private const string DefaultNotifyOnDespawnMessage = "Supply drop {0} has been despawned at {1},{2},{3}";
 
+		public Boolean AdminCommandDropEnabled { get; set; }
+		public Boolean SupplySignalsEnabled { get; set; }
+		public Boolean BuiltInAirdropEnabled { get; set; }
+		public Boolean PluginAirdropTimerEnabled { get; set; }
+
 		public TimeSpan DropFrequency { get; set; }
 		public int MinimumPlayerCount { get; set; }
-		public Boolean ConsoleStartOnly { get; set; }
 		public TimeSpan SupplyCrateDespawnTime { get; set; }
 
 		public Boolean NotifyOnPlaneSpawned { get; set; }
@@ -1542,7 +1557,7 @@ namespace AirdropExtended.Airdrop.Settings
 			{
 				DropFrequency = TimeSpan.FromHours(1),
 				MinimumPlayerCount = 25,
-				ConsoleStartOnly = false,
+				AdminCommandDropEnabled = false,
 				SupplyCrateDespawnTime = TimeSpan.FromMinutes(5),
 				NotifyOnPlaneSpawned = false,
 				NotifyOnPlaneSpawnedMessage = DefaultNotifyOnPlaneSpawnedMessage,
