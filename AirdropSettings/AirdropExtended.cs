@@ -8,7 +8,6 @@ using AirdropExtended.Commands;
 using AirdropExtended.Diagnostics;
 using AirdropExtended.Permissions;
 using AirdropExtended.WeightedSearch;
-using JetBrains.Annotations;
 using Oxide.Core;
 using System;
 using System.Collections.Generic;
@@ -29,7 +28,7 @@ using Timer = Oxide.Core.Libraries.Timer;
 
 namespace Oxide.Plugins
 {
-	[Info(Constants.PluginName, "baton", "0.4.1", ResourceId = 1210)]
+	[Info(Constants.PluginName, "baton", "0.5.1", ResourceId = 1210)]
 	[Description("Customizable airdrop")]
 	public class AirdropExtended : RustPlugin
 	{
