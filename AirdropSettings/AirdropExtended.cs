@@ -17,6 +17,7 @@ using AirdropExtended.PluginSettings;
 using Oxide.Core.Configuration;
 using Oxide.Core.Libraries;
 using Oxide.Core.Plugins;
+using Oxide.Game.Rust.Libraries;
 using Oxide.Plugins;
 using Rust;
 using UnityEngine;
@@ -46,17 +47,17 @@ namespace Oxide.Plugins
 		private void OnServerInitialized()
 		{
 			LoadConfig();
-			_pluginSettingsRepository = new PluginSettingsRepository(Config);
-			Load();
+			Bootstrap();
+			DisableEventSystem();
+			Save();
+		}
 
-			var commands = CommandFactory.Create(_settingsContext, _pluginSettingsRepository, _airdropController);
-			PermissionService.RegisterPermissions(this, commands);
-			_commands = commands.ToDictionary(c => c.Name, c => c);
-
+		private static void DisableEventSystem()
+		{
 			var schedules = UnityEngine.Object.FindObjectsOfType<EventSchedule>();
 			foreach (var schedule in schedules)
 			{
-				Diagnostics.MessageToServer("Disable schedule:{0}", schedule.GetInstanceID());
+				Diagnostics.MessageToServer("Disable built-in event schedule:{0}", schedule.GetInstanceID());
 				var triggeredEvent = schedule.GetComponents<TriggeredEvent>();
 				foreach (var @event in triggeredEvent)
 				{
@@ -64,8 +65,27 @@ namespace Oxide.Plugins
 					UnityEngine.Object.Destroy(@event);
 				}
 			}
+		}
 
-			Save();
+		private void Bootstrap()
+		{
+			_pluginSettingsRepository = new PluginSettingsRepository(Config);
+			Load();
+
+			var commands = CommandFactory.Create(_settingsContext, _pluginSettingsRepository, _airdropController);
+			PermissionService.RegisterPermissions(this, commands);
+			_commands = commands.ToDictionary(c => c.Name, c => c);
+
+			var consoleSystem = Interface.Oxide.GetLibrary<Command>();
+			foreach (var command in commands)
+			{
+				var command1 = command;
+				consoleSystem.AddConsoleCommand(command.Name, this, arg =>
+				{
+					command1.Execute(arg, null);
+					return true;
+				});
+			}
 		}
 
 		private void Save()
@@ -118,22 +138,10 @@ namespace Oxide.Plugins
 			_commands["aire.load"].ExecuteFromChat(player, command, args);
 		}
 
-		[ConsoleCommand("aire.load")]
-		private void LoadSettingsCommand(ConsoleSystem.Arg arg)
-		{
-			_commands["aire.load"].Execute(arg, null);
-		}
-
 		[ChatCommand("aire.save")]
 		private void SaveSettingsChatCommand(BasePlayer player, string command, string[] args)
 		{
 			_commands["aire.save"].ExecuteFromChat(player, command, args);
-		}
-
-		[ConsoleCommand("aire.save")]
-		private void SaveSettingsCommand(ConsoleSystem.Arg arg)
-		{
-			_commands["aire.save"].Execute(arg, null);
 		}
 
 		[ChatCommand("aire.generate")]
@@ -142,34 +150,16 @@ namespace Oxide.Plugins
 			_commands["aire.generate"].ExecuteFromChat(player, command, args);
 		}
 
-		[ConsoleCommand("aire.generate")]
-		private void GenerateSettingsCommand(ConsoleSystem.Arg arg)
-		{
-			_commands["aire.generate"].Execute(arg, null);
-		}
-
 		[ChatCommand("aire.reload")]
 		private void ReloadSettingsChatCommand(BasePlayer player, string command, string[] args)
 		{
 			_commands["aire.reload"].ExecuteFromChat(player, command, args);
 		}
-
-		[ConsoleCommand("aire.reload")]
-		private void ReloadSettingsCommand(ConsoleSystem.Arg arg)
-		{
-			_commands["aire.reload"].Execute(arg, null);
-		}
-
+		
 		[ChatCommand("aire.players")]
 		private void SetPlayersChatCommand(BasePlayer player, string command, string[] args)
 		{
 			_commands["aire.players"].ExecuteFromChat(player, command, args);
-		}
-
-		[ConsoleCommand("aire.players")]
-		private void SetPlayersCommand(ConsoleSystem.Arg arg)
-		{
-			_commands["aire.players"].Execute(arg, null);
 		}
 
 		[ChatCommand("aire.console")]
@@ -178,22 +168,10 @@ namespace Oxide.Plugins
 			_commands["aire.console"].ExecuteFromChat(player, command, args);
 		}
 
-		[ConsoleCommand("aire.console")]
-		private void SetConsoleCommand(ConsoleSystem.Arg arg)
-		{
-			_commands["aire.console"].Execute(arg, null);
-		}
-
 		[ChatCommand("aire.despawntime")]
 		private void SetDespawnTimeChatCommand(BasePlayer player, string command, string[] args)
 		{
 			_commands["aire.despawntime"].ExecuteFromChat(player, command, args);
-		}
-
-		[ConsoleCommand("aire.despawntime")]
-		private void SetDespawnTimeCommand(ConsoleSystem.Arg arg)
-		{
-			_commands["aire.despawntime"].Execute(arg, null);
 		}
 
 		[ChatCommand("aire.freq")]
@@ -202,22 +180,10 @@ namespace Oxide.Plugins
 			_commands["aire.freq"].ExecuteFromChat(player, command, args);
 		}
 
-		[ConsoleCommand("aire.freq")]
-		private void SetFrequencyCommand(ConsoleSystem.Arg arg)
-		{
-			_commands["aire.freq"].Execute(arg, null);
-		}
-
 		[ChatCommand("aire.setitem")]
 		private void SetItemChatCommand(BasePlayer player, string command, string[] args)
 		{
 			_commands["aire.setitem"].ExecuteFromChat(player, command, args);
-		}
-
-		[ConsoleCommand("aire.setitem")]
-		private void SetItemCommand(ConsoleSystem.Arg arg)
-		{
-			_commands["aire.setitem"].Execute(arg, null);
 		}
 
 		[ChatCommand("aire.setitemgroup")]
@@ -226,22 +192,10 @@ namespace Oxide.Plugins
 			_commands["aire.setitemgroup"].ExecuteFromChat(player, command, args);
 		}
 
-		[ConsoleCommand("aire.setitemgroup")]
-		private void SetItemGroupCommand(ConsoleSystem.Arg arg)
-		{
-			_commands["aire.setitemgroup"].Execute(arg, null);
-		}
-
 		[ChatCommand("aire.capacity")]
 		private void SetDropCapacityChatCommand(BasePlayer player, string command, string[] args)
 		{
 			_commands["aire.capacity"].ExecuteFromChat(player, command, args);
-		}
-
-		[ConsoleCommand("aire.capacity")]
-		private void SetDropCapacityCommand(ConsoleSystem.Arg arg)
-		{
-			_commands["aire.capacity"].Execute(arg, null);
 		}
 
 		#endregion
