@@ -28,7 +28,7 @@ using Timer = Oxide.Core.Libraries.Timer;
 
 namespace Oxide.Plugins
 {
-	[Info(Constants.PluginName, "baton", 0.2, ResourceId = 1210)]
+	[Info(Constants.PluginName, "baton", "0.4.1", ResourceId = 1210)]
 	[Description("Customizable airdrop")]
 	public class AirdropExtended : RustPlugin
 	{
@@ -65,12 +65,6 @@ namespace Oxide.Plugins
 				}
 			}
 
-			foreach (var pair in _commands)
-			{
-				cmd.AddChatCommand(pair.Key, this, string.Empty);
-				cmd.AddConsoleCommand(pair.Key, this, string.Empty);
-			}
-
 			Save();
 		}
 
@@ -80,57 +74,6 @@ namespace Oxide.Plugins
 			AidropSettingsRepository.SaveTo(_settingsContext.SettingsName, _settingsContext.Settings);
 
 			SaveConfig();
-		}
-
-		protected override object OnCallHook(string name, object[] args)
-		{
-			if (!string.IsNullOrEmpty(name) || _commands == null || args == null || args.Length <= 0)
-				return base.OnCallHook(name, args);
-
-			var consoleSystemArg = args[0] as ConsoleSystem.Arg;
-			var basePlayer = args[0] as BasePlayer;
-
-			if (consoleSystemArg != null && consoleSystemArg.cmd != null)
-			{
-				Diagnostics.MessageToServer("exec hook:{0}", name);
-				return FireConsoleCommand(name, args, consoleSystemArg);
-			}
-
-			if (basePlayer != null)
-				return FirePlayerCommand(name, args, basePlayer);
-
-			return base.OnCallHook(name, args);
-		}
-
-		private object FireConsoleCommand(string name, object[] args, ConsoleSystem.Arg consoleSystemArg)
-		{
-			if (consoleSystemArg.cmd.parent == null)
-				return null;
-
-			AirdropExtendedCommand command;
-			_commands.TryGetValue(consoleSystemArg.cmd.namefull, out command);
-
-			if (command == null)
-				return base.OnCallHook(name, args);
-
-			command.Execute(consoleSystemArg, null);
-			return null;
-		}
-
-		private object FirePlayerCommand(string name, object[] args, BasePlayer basePlayer)
-		{
-			AirdropExtendedCommand command;
-			if (args == null || args.Length <= 1 || args[1] == null)
-				return base.OnCallHook(name, args);
-
-			var cmdName = args[1] as string ?? string.Empty;
-			_commands.TryGetValue(cmdName, out command);
-			if (command == null)
-				return base.OnCallHook(name, args);
-
-			var chatCommandParams = args[2] as string[] ?? new string[0];
-			command.ExecuteFromChat(basePlayer, cmdName, chatCommandParams);
-			return null;
 		}
 
 		private void Load()
@@ -153,11 +96,11 @@ namespace Oxide.Plugins
 				return;
 
 			var commonSettings = _settingsContext.Settings.CommonSettings;
-
+			
 			Diagnostics.MessageTo(
 				commonSettings.NotifyOnPlayerLootingStartedMessage,
 				commonSettings.NotifyOnPlayerLootingStarted,
-				lootInventory.GetComponent<BasePlayer>().userID,
+				lootInventory.GetComponent<BasePlayer>().displayName,
 				supplyDrop.net.ID);
 		}
 
@@ -166,6 +109,142 @@ namespace Oxide.Plugins
 			if (_airdropController.IsInitialized())
 				_airdropController.OnEntitySpawned(entity);
 		}
+
+		#region command handlers
+
+		[ChatCommand("aire.load")]
+		private void LoadSettingsChatCommand(BasePlayer player, string command, string[] args)
+		{
+			_commands["aire.load"].ExecuteFromChat(player, command, args);
+		}
+
+		[ConsoleCommand("aire.load")]
+		private void LoadSettingsCommand(ConsoleSystem.Arg arg)
+		{
+			_commands["aire.load"].Execute(arg, null);
+		}
+
+		[ChatCommand("aire.save")]
+		private void SaveSettingsChatCommand(BasePlayer player, string command, string[] args)
+		{
+			_commands["aire.save"].ExecuteFromChat(player, command, args);
+		}
+
+		[ConsoleCommand("aire.save")]
+		private void SaveSettingsCommand(ConsoleSystem.Arg arg)
+		{
+			_commands["aire.save"].Execute(arg, null);
+		}
+
+		[ChatCommand("aire.generate")]
+		private void GenerateSettingsChatCommand(BasePlayer player, string command, string[] args)
+		{
+			_commands["aire.generate"].ExecuteFromChat(player, command, args);
+		}
+
+		[ConsoleCommand("aire.generate")]
+		private void GenerateSettingsCommand(ConsoleSystem.Arg arg)
+		{
+			_commands["aire.generate"].Execute(arg, null);
+		}
+
+		[ChatCommand("aire.reload")]
+		private void ReloadSettingsChatCommand(BasePlayer player, string command, string[] args)
+		{
+			_commands["aire.reload"].ExecuteFromChat(player, command, args);
+		}
+
+		[ConsoleCommand("aire.reload")]
+		private void ReloadSettingsCommand(ConsoleSystem.Arg arg)
+		{
+			_commands["aire.reload"].Execute(arg, null);
+		}
+
+		[ChatCommand("aire.players")]
+		private void SetPlayersChatCommand(BasePlayer player, string command, string[] args)
+		{
+			_commands["aire.players"].ExecuteFromChat(player, command, args);
+		}
+
+		[ConsoleCommand("aire.players")]
+		private void SetPlayersCommand(ConsoleSystem.Arg arg)
+		{
+			_commands["aire.players"].Execute(arg, null);
+		}
+
+		[ChatCommand("aire.console")]
+		private void SetConsoleChatCommand(BasePlayer player, string command, string[] args)
+		{
+			_commands["aire.console"].ExecuteFromChat(player, command, args);
+		}
+
+		[ConsoleCommand("aire.console")]
+		private void SetConsoleCommand(ConsoleSystem.Arg arg)
+		{
+			_commands["aire.console"].Execute(arg, null);
+		}
+
+		[ChatCommand("aire.despawntime")]
+		private void SetDespawnTimeChatCommand(BasePlayer player, string command, string[] args)
+		{
+			_commands["aire.despawntime"].ExecuteFromChat(player, command, args);
+		}
+
+		[ConsoleCommand("aire.despawntime")]
+		private void SetDespawnTimeCommand(ConsoleSystem.Arg arg)
+		{
+			_commands["aire.despawntime"].Execute(arg, null);
+		}
+
+		[ChatCommand("aire.freq")]
+		private void SetFrequencyChatCommand(BasePlayer player, string command, string[] args)
+		{
+			_commands["aire.freq"].ExecuteFromChat(player, command, args);
+		}
+
+		[ConsoleCommand("aire.freq")]
+		private void SetFrequencyCommand(ConsoleSystem.Arg arg)
+		{
+			_commands["aire.freq"].Execute(arg, null);
+		}
+
+		[ChatCommand("aire.setitem")]
+		private void SetItemChatCommand(BasePlayer player, string command, string[] args)
+		{
+			_commands["aire.setitem"].ExecuteFromChat(player, command, args);
+		}
+
+		[ConsoleCommand("aire.setitem")]
+		private void SetItemCommand(ConsoleSystem.Arg arg)
+		{
+			_commands["aire.setitem"].Execute(arg, null);
+		}
+
+		[ChatCommand("aire.setitemgroup")]
+		private void SetItemGroupChatCommand(BasePlayer player, string command, string[] args)
+		{
+			_commands["aire.setitemgroup"].ExecuteFromChat(player, command, args);
+		}
+
+		[ConsoleCommand("aire.setitemgroup")]
+		private void SetItemGroupCommand(ConsoleSystem.Arg arg)
+		{
+			_commands["aire.setitemgroup"].Execute(arg, null);
+		}
+
+		[ChatCommand("aire.capacity")]
+		private void SetDropCapacityChatCommand(BasePlayer player, string command, string[] args)
+		{
+			_commands["aire.capacity"].ExecuteFromChat(player, command, args);
+		}
+
+		[ConsoleCommand("aire.capacity")]
+		private void SetDropCapacityCommand(ConsoleSystem.Arg arg)
+		{
+			_commands["aire.capacity"].Execute(arg, null);
+		}
+
+		#endregion
 	}
 }
 
@@ -1102,7 +1181,7 @@ namespace AirdropExtended.Airdrop
 		private void SpawnPlane()
 		{
 			Diagnostics.Diagnostics.MessageToServer("plane spawned by aire timer");
-			var plane = GameManager.server.CreateEntity("events/cargo_plane", new Vector3(), new Quaternion());
+			var plane = GameManager.server.CreateEntity("assets/bundled/prefabs/events/cargo_plane.prefab", new Vector3(), new Quaternion());
 			if (plane != null)
 				plane.Spawn();
 		}
