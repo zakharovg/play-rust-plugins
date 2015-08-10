@@ -114,6 +114,12 @@ namespace Oxide.Plugins
 				_airdropController.OnEntitySpawned(entity);
 		}
 
+		private void OnWeaponThrown(BasePlayer player, BaseEntity entity)
+		{
+			if (entity is SupplySignal)
+				_airdropController.OnSupplySignal(player, entity);
+		}
+
 		#region command handlers
 
 		[ChatCommand("aire.load")]
@@ -146,10 +152,22 @@ namespace Oxide.Plugins
 			_commands["aire.players"].ExecuteFromChat(player, command, args);
 		}
 
-		[ChatCommand("aire.console")]
-		private void SetConsoleChatCommand(BasePlayer player, string command, string[] args)
+		[ChatCommand("aire.event")]
+		private void SetEventEnabledChatCommand(BasePlayer player, string command, string[] args)
 		{
-			_commands["aire.console"].ExecuteFromChat(player, command, args);
+			_commands["aire.event"].ExecuteFromChat(player, command, args);
+		}
+
+		[ChatCommand("aire.supply")]
+		private void SetSupplyEnabledChatCommand(BasePlayer player, string command, string[] args)
+		{
+			_commands["aire.supply"].ExecuteFromChat(player, command, args);
+		}
+
+		[ChatCommand("aire.timer")]
+		private void SetTimerEnabledChatCommand(BasePlayer player, string command, string[] args)
+		{
+			_commands["aire.timer"].ExecuteFromChat(player, command, args);
 		}
 
 		[ChatCommand("aire.despawntime")]
@@ -728,13 +746,13 @@ namespace AirdropExtended.Commands
 		}
 	}
 
-	public class SetConsoleOnlyCommand : AirdropExtendedCommand
+	public class SetTimerEnabledCommand : AirdropExtendedCommand
 	{
 		private readonly SettingsContext _context;
 		private readonly AirdropController _controller;
 
-		public SetConsoleOnlyCommand(SettingsContext context, AirdropController controller)
-			: base("aire.console", "aire.canConsole")
+		public SetTimerEnabledCommand(SettingsContext context, AirdropController controller)
+			: base("aire.timer", "aire.canTimer")
 		{
 			if (context == null) throw new ArgumentNullException("context");
 			if (controller == null) throw new ArgumentNullException("controller");
@@ -750,11 +768,83 @@ namespace AirdropExtended.Commands
 				return;
 			}
 
-			var consoleStartOnly = arg.GetBool(0);
+			var pluginAirdropTimerEnabled = arg.GetBool(0);
 
-			_context.Settings.CommonSettings.AdminCommandDropEnabled = consoleStartOnly;
+			_context.Settings.CommonSettings.PluginAirdropTimerEnabled = pluginAirdropTimerEnabled;
 
-			Diagnostics.Diagnostics.MessageToServerAndPlayer(player, "Setting console start only to {0}", consoleStartOnly);
+			Diagnostics.Diagnostics.MessageToServerAndPlayer(player, "Setting plugin timer enabled to {0}", pluginAirdropTimerEnabled);
+			_controller.ApplySettings();
+		}
+
+		protected override string GetUsageString()
+		{
+			return GetDefaultUsageString("true");
+		}
+	}
+
+	public class SetEventEnabledCommand : AirdropExtendedCommand
+	{
+		private readonly SettingsContext _context;
+		private readonly AirdropController _controller;
+
+		public SetEventEnabledCommand(SettingsContext context, AirdropController controller)
+			: base("aire.event", "aire.canEvent")
+		{
+			if (context == null) throw new ArgumentNullException("context");
+			if (controller == null) throw new ArgumentNullException("controller");
+			_context = context;
+			_controller = controller;
+		}
+
+		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		{
+			if (!arg.HasArgs())
+			{
+				PrintUsage(player);
+				return;
+			}
+
+			var builtInAirdropEnabled = arg.GetBool(0);
+
+			_context.Settings.CommonSettings.BuiltInAirdropEnabled = builtInAirdropEnabled;
+
+			Diagnostics.Diagnostics.MessageToServerAndPlayer(player, "Setting built in airdrop enabled to {0}", builtInAirdropEnabled);
+			_controller.ApplySettings();
+		}
+
+		protected override string GetUsageString()
+		{
+			return GetDefaultUsageString("true");
+		}
+	}
+
+	public class SetSupplyDropEnabledCommand : AirdropExtendedCommand
+	{
+		private readonly SettingsContext _context;
+		private readonly AirdropController _controller;
+
+		public SetSupplyDropEnabledCommand(SettingsContext context, AirdropController controller)
+			: base("aire.supply", "aire.canSupply")
+		{
+			if (context == null) throw new ArgumentNullException("context");
+			if (controller == null) throw new ArgumentNullException("controller");
+			_context = context;
+			_controller = controller;
+		}
+
+		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		{
+			if (!arg.HasArgs())
+			{
+				PrintUsage(player);
+				return;
+			}
+
+			var supplyDropTimerEnabled = arg.GetBool(0);
+
+			_context.Settings.CommonSettings.SupplySignalsEnabled = supplyDropTimerEnabled;
+
+			Diagnostics.Diagnostics.MessageToServerAndPlayer(player, "Setting supply signals enabled to {0}", supplyDropTimerEnabled);
 			_controller.ApplySettings();
 		}
 
@@ -1006,7 +1096,9 @@ namespace AirdropExtended.Commands
 					new GenerateDefaultSettingsAndSaveCommand(),
 					new SetDropFrequencyCommand(context, controller),
 					new SetPlayersCommand(context, controller),
-					new SetConsoleOnlyCommand(context, controller),
+					new SetEventEnabledCommand(context, controller),
+					new SetTimerEnabledCommand(context, controller),
+					new SetSupplyDropEnabledCommand(context, controller),
 					new SetDespawnTimeCommand(context, controller),
 					new SetItemSettingsCommand(context, controller),
 					new SetItemGroupSettingsCommand(context, controller),
@@ -1247,20 +1339,22 @@ namespace AirdropExtended.Airdrop.Services
 
 			schedule.CancelInvoke("RunSchedule");
 			if (_context.Settings.CommonSettings.BuiltInAirdropEnabled)
-			{
-				Diagnostics.Diagnostics.MessageToServer("Enable built-in airdrop.");
 				schedule.InvokeRepeating("RunSchedule", 1f, 1f);
-			}
-			else
-			{
-				Diagnostics.Diagnostics.MessageToServer("Disable built-in airdrop.");
-			}
 		}
 
 		public void Cleanup()
 		{
 			_timerService.StopAirdropTimer();
 			SupplyDropBehaviorService.RemoveCustomBehaviorsFromSupplyDrops();
+		}
+
+		public void OnSupplySignal(BasePlayer player, BaseEntity entity)
+		{
+			if (_context.Settings.CommonSettings.SupplySignalsEnabled) 
+				return;
+
+			entity.KillMessage();
+			Diagnostics.Diagnostics.MessageToPlayer(player, "Supply signals are disabled by server.");
 		}
 	}
 }
@@ -1504,7 +1598,6 @@ namespace AirdropExtended.Airdrop.Settings
 		private const string DefaultNotifyOnCollisionMessage = "Supply drop {0} has landed at {1},{2},{3}";
 		private const string DefaultNotifyOnDespawnMessage = "Supply drop {0} has been despawned at {1},{2},{3}";
 
-		public Boolean AdminCommandDropEnabled { get; set; }
 		public Boolean SupplySignalsEnabled { get; set; }
 		public Boolean BuiltInAirdropEnabled { get; set; }
 		public Boolean PluginAirdropTimerEnabled { get; set; }
@@ -1551,7 +1644,6 @@ namespace AirdropExtended.Airdrop.Settings
 			NotifyOnDespawnMessage = DefaultNotifyOnDespawnMessage;
 			NotifyOnDespawn = false;
 
-			AdminCommandDropEnabled = true;
 			SupplySignalsEnabled = true;
 			BuiltInAirdropEnabled = false;
 			PluginAirdropTimerEnabled = true;
@@ -1563,8 +1655,8 @@ namespace AirdropExtended.Airdrop.Settings
 			{
 				DropFrequency = TimeSpan.FromHours(1),
 				MinimumPlayerCount = 25,
-				AdminCommandDropEnabled = false,
 				SupplyCrateDespawnTime = TimeSpan.FromMinutes(5),
+
 				NotifyOnPlaneSpawned = false,
 				NotifyOnPlaneSpawnedMessage = DefaultNotifyOnPlaneSpawnedMessage,
 				NotifyOnPlaneRemoved = false,
@@ -1576,7 +1668,11 @@ namespace AirdropExtended.Airdrop.Settings
 				NotifyOnCollision = false,
 				NotifyOnCollisionMessage = DefaultNotifyOnCollisionMessage,
 				NotifyOnDespawn = false,
-				NotifyOnDespawnMessage = DefaultNotifyOnDespawnMessage
+				NotifyOnDespawnMessage = DefaultNotifyOnDespawnMessage,
+
+				SupplySignalsEnabled = true,
+				BuiltInAirdropEnabled = false,
+				PluginAirdropTimerEnabled = true
 			};
 		}
 	}
