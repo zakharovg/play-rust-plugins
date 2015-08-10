@@ -1,18 +1,18 @@
 ﻿using System.Globalization;
 using AirdropExtended;
-using AirdropExtended.Airdrop;
+using AirdropExtended.Airdrop.Services;
+using AirdropExtended.Airdrop.Settings;
+using AirdropExtended.Airdrop.Settings.Generate;
 using AirdropExtended.Behaviors;
 using AirdropExtended.Commands;
 using AirdropExtended.Diagnostics;
 using AirdropExtended.Permissions;
-using AirdropExtended.Settings.Generate;
 using AirdropExtended.WeightedSearch;
 using JetBrains.Annotations;
 using Oxide.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using AirdropExtended.Airdrop.Settings;
 using AirdropExtended.PluginSettings;
 using Oxide.Core.Configuration;
 using Oxide.Core.Libraries;
@@ -48,7 +48,6 @@ namespace Oxide.Plugins
 		{
 			LoadConfig();
 			Bootstrap();
-			DisableEventSystem();
 			Save();
 		}
 
@@ -59,8 +58,8 @@ namespace Oxide.Plugins
 
 			var commands = CommandFactory.Create(_settingsContext, _pluginSettingsRepository, _airdropController);
 			PermissionService.RegisterPermissions(this, commands);
-			_commands = commands.ToDictionary(c => c.Name, c => c);
 
+			_commands = commands.ToDictionary(c => c.Name, c => c);
 			var consoleSystem = Interface.Oxide.GetLibrary<Command>();
 			foreach (var command in commands)
 			{
@@ -78,21 +77,6 @@ namespace Oxide.Plugins
 			_settingsContext.SettingsName = _pluginSettingsRepository.LoadSettingsName();
 			_settingsContext.Settings = AidropSettingsRepository.LoadFrom(_settingsContext.SettingsName);
 			_airdropController.ApplySettings();
-		}
-
-		private static void DisableEventSystem()
-		{
-			var schedules = UnityEngine.Object.FindObjectsOfType<EventSchedule>();
-			foreach (var schedule in schedules)
-			{
-				Diagnostics.MessageToServer("Disable built-in event schedule:{0}", schedule.GetInstanceID());
-				var triggeredEvent = schedule.GetComponents<TriggeredEvent>();
-				foreach (var @event in triggeredEvent)
-				{
-					Diagnostics.MessageToServer("destroy event:{0}", @event.GetInstanceID());
-					UnityEngine.Object.Destroy(@event);
-				}
-			}
 		}
 
 		private void Save()
@@ -1113,7 +1097,7 @@ namespace AirdropExtended.WeightedSearch
 	}
 }
 
-namespace AirdropExtended.Airdrop
+namespace AirdropExtended.Airdrop.Services
 {
 	public sealed class AirdropTimerService
 	{
@@ -1140,9 +1124,9 @@ namespace AirdropExtended.Airdrop
 			if (playerCount >= _settings.CommonSettings.MinimumPlayerCount)
 			{
 				Diagnostics.Diagnostics.MessageToServer("running timed airdrop");
-				
+
 				var plane = GameManager.server.CreateEntity(
-					"assets/bundled/prefabs/events/cargo_plane.prefab", 
+					"assets/bundled/prefabs/events/cargo_plane.prefab",
 					new Vector3(),
 					new Quaternion());
 				if (plane != null)
@@ -1201,6 +1185,7 @@ namespace AirdropExtended.Airdrop
 
 		private void InitializeServices(AirdropSettings settings)
 		{
+			SetupBuiltInAirdrop();
 			SupplyDropBehaviorService.AttachCustomBehaviorsToSupplyDrops(settings);
 			_timerService.StartAirdropTimer(settings);
 		}
@@ -1254,6 +1239,22 @@ namespace AirdropExtended.Airdrop
 		private void NotifyOnPlane()
 		{
 			Diagnostics.Diagnostics.MessageTo(_context.Settings.CommonSettings.NotifyOnPlaneSpawnedMessage, _context.Settings.CommonSettings.NotifyOnPlaneSpawned);
+		}
+
+		private void SetupBuiltInAirdrop()
+		{
+			var schedule = UnityEngine.Object.FindObjectsOfType<EventSchedule>().First();
+
+			schedule.CancelInvoke("RunSchedule");
+			if (_context.Settings.CommonSettings.BuiltInAirdropEnabled)
+			{
+				Diagnostics.Diagnostics.MessageToServer("Enable built-in airdrop.");
+				schedule.InvokeRepeating("RunSchedule", 1f, 1f);
+			}
+			else
+			{
+				Diagnostics.Diagnostics.MessageToServer("Disable built-in airdrop.");
+			}
 		}
 
 		public void Cleanup()
@@ -1549,6 +1550,11 @@ namespace AirdropExtended.Airdrop.Settings
 
 			NotifyOnDespawnMessage = DefaultNotifyOnDespawnMessage;
 			NotifyOnDespawn = false;
+
+			AdminCommandDropEnabled = true;
+			SupplySignalsEnabled = true;
+			BuiltInAirdropEnabled = false;
+			PluginAirdropTimerEnabled = true;
 		}
 
 		public static CommonSettings CreateDefault()
@@ -1639,7 +1645,7 @@ namespace AirdropExtended.Airdrop.Settings
 	}
 }
 
-namespace AirdropExtended.Settings.Generate
+namespace AirdropExtended.Airdrop.Settings.Generate
 {
 	public static class AirdropSettingsFactory
 	{
