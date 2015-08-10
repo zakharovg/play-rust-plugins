@@ -176,10 +176,16 @@ namespace Oxide.Plugins
 			_commands["aire.despawntime"].ExecuteFromChat(player, command, args);
 		}
 
-		[ChatCommand("aire.freq")]
-		private void SetFrequencyChatCommand(BasePlayer player, string command, string[] args)
+		[ChatCommand("aire.minfreq")]
+		private void SetMinFrequencyChatCommand(BasePlayer player, string command, string[] args)
 		{
-			_commands["aire.freq"].ExecuteFromChat(player, command, args);
+			_commands["aire.minfreq"].ExecuteFromChat(player, command, args);
+		}
+
+		[ChatCommand("aire.maxfreq")]
+		private void SetMaxFrequencyChatCommand(BasePlayer player, string command, string[] args)
+		{
+			_commands["aire.maxfreq"].ExecuteFromChat(player, command, args);
 		}
 
 		[ChatCommand("aire.setitem")]
@@ -674,13 +680,13 @@ namespace AirdropExtended.Commands
 		}
 	}
 
-	public class SetDropFrequencyCommand : AirdropExtendedCommand
+	public class SetDropMinFrequencyCommand : AirdropExtendedCommand
 	{
 		private readonly SettingsContext _context;
 		private readonly AirdropController _controller;
 
-		public SetDropFrequencyCommand([NotNull] SettingsContext context, AirdropController controller)
-			: base("aire.freq", "aire.canFreq")
+		public SetDropMinFrequencyCommand(SettingsContext context, AirdropController controller)
+			: base("aire.minfreq", "aire.canMinFreq")
 		{
 			if (context == null) throw new ArgumentNullException("context");
 			if (controller == null) throw new ArgumentNullException("controller");
@@ -698,9 +704,46 @@ namespace AirdropExtended.Commands
 
 			var frequency = arg.GetInt(0);
 			frequency = frequency < 0 ? 0 : frequency;
-			_context.Settings.CommonSettings.DropFrequency = TimeSpan.FromSeconds(frequency);
+			_context.Settings.CommonSettings.MinDropFrequency = TimeSpan.FromSeconds(frequency);
 
-			Diagnostics.Diagnostics.MessageToServerAndPlayer(player, "Setting frequency to {0}", frequency);
+			Diagnostics.Diagnostics.MessageToServerAndPlayer(player, "Setting min frequency to {0}", frequency);
+			_controller.ApplySettings();
+		}
+
+		protected override string GetUsageString()
+		{
+			return GetDefaultUsageString("3600");
+		}
+	}
+
+	public class SetDropMaxFrequencyCommand : AirdropExtendedCommand
+	{
+		private readonly SettingsContext _context;
+		private readonly AirdropController _controller;
+
+		public SetDropMaxFrequencyCommand(SettingsContext context, AirdropController controller)
+			: base("aire.maxfreq", "aire.canMaxFreq")
+		{
+			if (context == null) throw new ArgumentNullException("context");
+			if (controller == null) throw new ArgumentNullException("controller");
+
+			_context = context;
+			_controller = controller;
+		}
+
+		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		{
+			if (!arg.HasArgs())
+			{
+				PrintUsage(player);
+				return;
+			}
+
+			var frequency = arg.GetInt(0);
+			frequency = frequency < 0 ? 0 : frequency;
+			_context.Settings.CommonSettings.MaxDropFrequency = TimeSpan.FromSeconds(frequency);
+
+			Diagnostics.Diagnostics.MessageToServerAndPlayer(player, "Setting max frequency to {0}", frequency);
 			_controller.ApplySettings();
 		}
 
@@ -1094,7 +1137,8 @@ namespace AirdropExtended.Commands
 					new ReloadSettingsCommand(context, settingsRepository, controller),
 					new SaveSettingsCommand(context, settingsRepository),
 					new GenerateDefaultSettingsAndSaveCommand(),
-					new SetDropFrequencyCommand(context, controller),
+					new SetDropMinFrequencyCommand(context, controller),
+					new SetDropMaxFrequencyCommand(context, controller),
 					new SetPlayersCommand(context, controller),
 					new SetEventEnabledCommand(context, controller),
 					new SetTimerEnabledCommand(context, controller),
@@ -1206,8 +1250,20 @@ namespace AirdropExtended.Airdrop.Services
 			if (!settings.CommonSettings.PluginAirdropTimerEnabled)
 				return;
 
-			var dropFrequence = Convert.ToSingle(settings.CommonSettings.DropFrequency.TotalSeconds);
-			_aidropTimer = Interface.GetMod().GetLibrary<Timer>().Repeat(dropFrequence, 0, Tick);
+			SetupNextTick();
+		}
+
+		private void SetupNextTick()
+		{
+			StopAirdropTimer();
+
+			var minDropFreq = Convert.ToSingle(_settings.CommonSettings.MinDropFrequency.TotalSeconds);
+			var maxDropFreq = Convert.ToSingle(_settings.CommonSettings.MaxDropFrequency.TotalSeconds);
+
+			var delay = Oxide.Core.Random.Range(minDropFreq, maxDropFreq);
+
+			Diagnostics.Diagnostics.MessageToServer("next airdrop in:{0}", delay);
+			_aidropTimer = Interface.GetMod().GetLibrary<Timer>().Once(delay, Tick);
 		}
 
 		private void Tick()
@@ -1231,6 +1287,8 @@ namespace AirdropExtended.Airdrop.Services
 					_settings.CommonSettings.NotifyOnPlaneRemoved,
 					playerCount);
 			}
+
+			SetupNextTick();
 		}
 
 		public void StopAirdropTimer()
@@ -1350,7 +1408,7 @@ namespace AirdropExtended.Airdrop.Services
 
 		public void OnSupplySignal(BasePlayer player, BaseEntity entity)
 		{
-			if (_context.Settings.CommonSettings.SupplySignalsEnabled) 
+			if (_context.Settings.CommonSettings.SupplySignalsEnabled)
 				return;
 
 			entity.KillMessage();
@@ -1591,6 +1649,8 @@ namespace AirdropExtended.Airdrop.Settings
 
 	public sealed class CommonSettings
 	{
+		public static readonly TimeSpan DefaultDropFrequency = TimeSpan.FromHours(1);
+
 		public const string DefaultNotifyOnPlaneSpawnedMessage = "Cargo Plane has been spawned.";
 		public const string DefaultNotifyOnPlaneRemovedMessage = "Cargo Plane has been removed, due to insufficient player count: {0}.";
 		public const string DefaultNotifyOnDropStartedMessage = "Supply Drop {0} has been spawned at {1},{2},{3}.";
@@ -1602,7 +1662,9 @@ namespace AirdropExtended.Airdrop.Settings
 		public Boolean BuiltInAirdropEnabled { get; set; }
 		public Boolean PluginAirdropTimerEnabled { get; set; }
 
-		public TimeSpan DropFrequency { get; set; }
+		public TimeSpan MinDropFrequency { get; set; }
+		public TimeSpan MaxDropFrequency { get; set; }
+
 		public int MinimumPlayerCount { get; set; }
 		public TimeSpan SupplyCrateDespawnTime { get; set; }
 
@@ -1653,7 +1715,8 @@ namespace AirdropExtended.Airdrop.Settings
 		{
 			return new CommonSettings
 			{
-				DropFrequency = TimeSpan.FromHours(1),
+				MinDropFrequency = DefaultDropFrequency,
+				MaxDropFrequency = DefaultDropFrequency,
 				MinimumPlayerCount = 25,
 				SupplyCrateDespawnTime = TimeSpan.FromMinutes(5),
 
@@ -1688,6 +1751,8 @@ namespace AirdropExtended.Airdrop.Settings
 			var diff = countOfItems - AirdropSettings.MaxCapacity;
 			if (diff > 0 && settings.PickStrategy == PickStrategy.GroupSize)
 				AdjustGroupMaxAmount(settings.ItemGroups, diff);
+
+			ValidateFrequency(settings);
 		}
 
 		private static void AdjustGroupMaxAmount(List<AirdropItemGroup> value, int diff)
@@ -1701,6 +1766,25 @@ namespace AirdropExtended.Airdrop.Settings
 
 				foreach (var item in airdropItemGroup.ItemSettings.Where(item => item.MinAmount > item.MaxAmount))
 					item.MinAmount = item.MaxAmount;
+			}
+		}
+
+		private static void ValidateFrequency(AirdropSettings settings)
+		{
+			if (settings.CommonSettings.MinDropFrequency <= TimeSpan.Zero)
+				settings.CommonSettings.MinDropFrequency = CommonSettings.DefaultDropFrequency;
+			if (settings.CommonSettings.MaxDropFrequency <= TimeSpan.Zero)
+				settings.CommonSettings.MaxDropFrequency = CommonSettings.DefaultDropFrequency;
+
+			if (settings.CommonSettings.MinDropFrequency > settings.CommonSettings.MaxDropFrequency)
+			{
+				settings.CommonSettings.MinDropFrequency = settings.CommonSettings.MaxDropFrequency;
+				Diagnostics.Diagnostics.MessageToServer("adjusting minfreq to :{0}", settings.CommonSettings.MinDropFrequency.TotalSeconds);
+			}
+			else if (settings.CommonSettings.MaxDropFrequency < settings.CommonSettings.MinDropFrequency)
+			{
+				settings.CommonSettings.MaxDropFrequency = settings.CommonSettings.MinDropFrequency;
+				Diagnostics.Diagnostics.MessageToServer("adjusting maxfreq to :{0}", settings.CommonSettings.MaxDropFrequency.TotalSeconds);
 			}
 		}
 	}
