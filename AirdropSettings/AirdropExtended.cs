@@ -28,7 +28,7 @@ using Timer = Oxide.Core.Libraries.Timer;
 
 namespace Oxide.Plugins
 {
-	[Info(Constants.PluginName, "baton", "0.5.1", ResourceId = 1210)]
+	[Info(Constants.PluginName, "baton", "0.5.2", ResourceId = 1210)]
 	[Description("Customizable airdrop")]
 	public class AirdropExtended : RustPlugin
 	{
@@ -74,12 +74,14 @@ namespace Oxide.Plugins
 		private void Load()
 		{
 			_settingsContext.SettingsName = _pluginSettingsRepository.LoadSettingsName();
+			Diagnostics.MessageToServer("Loaded settings:{0}", _settingsContext.SettingsName);
 			_settingsContext.Settings = AidropSettingsRepository.LoadFrom(_settingsContext.SettingsName);
 			_airdropController.ApplySettings();
 		}
 
 		private void Save()
 		{
+			Diagnostics.MessageToServer("Saving settings:{0}", _settingsContext.SettingsName);
 			_pluginSettingsRepository.SaveSettingsName(_settingsContext.SettingsName);
 			AidropSettingsRepository.SaveTo(_settingsContext.SettingsName, _settingsContext.Settings);
 
@@ -1796,12 +1798,15 @@ namespace AirdropExtended.Airdrop.Settings
 			try
 			{
 				var fileName = "airdropExtended_" + settingsName;
-
 				settings = Interface.GetMod().DataFileSystem.ReadObject<AirdropSettings>(fileName);
 
-				settings = string.IsNullOrEmpty(settingsName) || settings == null || settings.CommonSettings == null || settings.ItemGroups == null
-					? AirdropSettingsFactory.CreateDefault()
-					: settings;
+				var oxideGeneratedDefaultSettingsFile = string.IsNullOrEmpty(settingsName) || settings == null || settings.CommonSettings == null || settings.ItemGroups == null;
+				if (oxideGeneratedDefaultSettingsFile)
+				{
+					Diagnostics.Diagnostics.MessageToServer("Not found settings in:{0}, generating default", settingsName);
+					settings = AirdropSettingsFactory.CreateDefault();
+					SaveTo(settingsName, settings);
+				}
 			}
 			catch (Exception ex)
 			{
