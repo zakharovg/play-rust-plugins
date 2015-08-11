@@ -1,0 +1,1153 @@
+{
+  "Capacity": 18,
+  "PickStrategy": 1,
+  "ItemGroups": [
+    {
+      "Name": "Attire",
+      "MaximumAmountInLoot": 4,
+      "ItemSettings": [
+        {
+          "Name": "hoodie",
+          "ChanceInPercent": 75.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "pants",
+          "ChanceInPercent": 75.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "tshirt",
+          "ChanceInPercent": 75.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "hat.beenie",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "shoes.boots",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "tshirt.long",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "bucket.helmet",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "coffeecan.helmet",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "attire.hide.boots",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "attire.hide.pants",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "attire.hide.poncho",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "attire.hide.vest",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "jacket.snow",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "jacket.snow3",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "riot.helmet",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "roadsign.jacket",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "roadsign.kilt",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "hat.cap",
+          "ChanceInPercent": 50.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "jacket",
+          "ChanceInPercent": 50.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "hazmat.helmet",
+          "ChanceInPercent": 50.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "jacket.snow2",
+          "ChanceInPercent": 50.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "metal.facemask",
+          "ChanceInPercent": 37.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "metal.plate.torso",
+          "ChanceInPercent": 37.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": false
+        }
+      ]
+    },
+    {
+      "Name": "Ammunition",
+      "MaximumAmountInLoot": 3,
+      "ItemSettings": [
+        {
+          "Name": "ammo.handmade.shell",
+          "ChanceInPercent": 75.0,
+          "MinAmount": 32,
+          "MaxAmount": 48,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "arrow.hv",
+          "ChanceInPercent": 75.0,
+          "MinAmount": 32,
+          "MaxAmount": 48,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "arrow.wooden",
+          "ChanceInPercent": 75.0,
+          "MinAmount": 32,
+          "MaxAmount": 48,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "ammo.pistol",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 32,
+          "MaxAmount": 48,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "ammo.shotgun",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 32,
+          "MaxAmount": 48,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "ammo.shotgun.slug",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 32,
+          "MaxAmount": 48,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "ammo.rifle",
+          "ChanceInPercent": 50.0,
+          "MinAmount": 32,
+          "MaxAmount": 48,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "ammo.pistol.fire",
+          "ChanceInPercent": 37.5,
+          "MinAmount": 32,
+          "MaxAmount": 48,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "ammo.pistol.hv",
+          "ChanceInPercent": 37.5,
+          "MinAmount": 32,
+          "MaxAmount": 48,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "ammo.rifle.explosive",
+          "ChanceInPercent": 37.5,
+          "MinAmount": 32,
+          "MaxAmount": 48,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "ammo.rifle.incendiary",
+          "ChanceInPercent": 37.5,
+          "MinAmount": 32,
+          "MaxAmount": 48,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "ammo.rifle.hv",
+          "ChanceInPercent": 37.5,
+          "MinAmount": 32,
+          "MaxAmount": 48,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "ammo.rocket.basic",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 3,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "ammo.rocket.fire",
+          "ChanceInPercent": 50.0,
+          "MinAmount": 1,
+          "MaxAmount": 3,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "ammo.rocket.hv",
+          "ChanceInPercent": 50.0,
+          "MinAmount": 1,
+          "MaxAmount": 3,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "ammo.rocket.smoke",
+          "ChanceInPercent": 37.5,
+          "MinAmount": 1,
+          "MaxAmount": 3,
+          "IsBlueprint": false
+        }
+      ]
+    },
+    {
+      "Name": "Misc",
+      "MaximumAmountInLoot": 1,
+      "ItemSettings": [
+        {
+          "Name": "blueprint_book",
+          "ChanceInPercent": 87.5,
+          "MinAmount": 25,
+          "MaxAmount": 50,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "blueprint_fragment",
+          "ChanceInPercent": 87.5,
+          "MinAmount": 25,
+          "MaxAmount": 50,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "blueprint_library",
+          "ChanceInPercent": 87.5,
+          "MinAmount": 25,
+          "MaxAmount": 50,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "blueprint_page",
+          "ChanceInPercent": 87.5,
+          "MinAmount": 25,
+          "MaxAmount": 50,
+          "IsBlueprint": false
+        }
+      ]
+    },
+    {
+      "Name": "Medical",
+      "MaximumAmountInLoot": 1,
+      "ItemSettings": [
+        {
+          "Name": "antiradpills",
+          "ChanceInPercent": 75.0,
+          "MinAmount": 50,
+          "MaxAmount": 100,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "syringe.medical",
+          "ChanceInPercent": 75.0,
+          "MinAmount": 10,
+          "MaxAmount": 20,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "largemedkit",
+          "ChanceInPercent": 50.0,
+          "MinAmount": 10,
+          "MaxAmount": 20,
+          "IsBlueprint": false
+        }
+      ]
+    },
+    {
+      "Name": "Resources",
+      "MaximumAmountInLoot": 1,
+      "ItemSettings": [
+        {
+          "Name": "crude.oil",
+          "ChanceInPercent": 87.5,
+          "MinAmount": 750,
+          "MaxAmount": 1000,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "hq.metal.ore",
+          "ChanceInPercent": 87.5,
+          "MinAmount": 750,
+          "MaxAmount": 1000,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "metal.fragments",
+          "ChanceInPercent": 87.5,
+          "MinAmount": 750,
+          "MaxAmount": 1000,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "metal.ore",
+          "ChanceInPercent": 87.5,
+          "MinAmount": 750,
+          "MaxAmount": 1000,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "metal.refined",
+          "ChanceInPercent": 87.5,
+          "MinAmount": 750,
+          "MaxAmount": 1000,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "cloth",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 750,
+          "MaxAmount": 1000,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "leather",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 750,
+          "MaxAmount": 1000,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "paper",
+          "ChanceInPercent": 75.0,
+          "MinAmount": 50,
+          "MaxAmount": 100,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "lowgradefuel",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 500,
+          "MaxAmount": 1000,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "gunpowder",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 500,
+          "MaxAmount": 1000,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "explosives",
+          "ChanceInPercent": 50.0,
+          "MinAmount": 25,
+          "MaxAmount": 50,
+          "IsBlueprint": false
+        }
+      ]
+    },
+    {
+      "Name": "Tool",
+      "MaximumAmountInLoot": 1,
+      "ItemSettings": [
+        {
+          "Name": "explosive.timed",
+          "ChanceInPercent": 40.0,
+          "MinAmount": 3,
+          "MaxAmount": 5,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "supply.signal",
+          "ChanceInPercent": 15.0,
+          "MinAmount": 3,
+          "MaxAmount": 5,
+          "IsBlueprint": false
+        }
+      ]
+    },
+    {
+      "Name": "Weapon",
+      "MaximumAmountInLoot": 4,
+      "ItemSettings": [
+        {
+          "Name": "crossbow",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "grenade.f1",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "pistol.revolver",
+          "ChanceInPercent": 32.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "longsword",
+          "ChanceInPercent": 50.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "mace",
+          "ChanceInPercent": 50.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "pistol.semiauto",
+          "ChanceInPercent": 50.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "rocket.launcher",
+          "ChanceInPercent": 75.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "salvaged.cleaver",
+          "ChanceInPercent": 50.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "shotgun.pump",
+          "ChanceInPercent": 75.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "smg.2",
+          "ChanceInPercent": 75.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "smg.thompson",
+          "ChanceInPercent": 75.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "rifle.ak",
+          "ChanceInPercent": 75.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": false
+        },
+        {
+          "Name": "rifle.bolt",
+          "ChanceInPercent": 75.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": false
+        }
+      ]
+    },
+    {
+      "Name": "Blueprint",
+      "MaximumAmountInLoot": 3,
+      "ItemSettings": [
+        {
+          "Name": "generator.wind.scrap",
+          "ChanceInPercent": 87.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "mining.pumpjack",
+          "ChanceInPercent": 87.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "mining.quarry",
+          "ChanceInPercent": 87.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "water.catcher.large",
+          "ChanceInPercent": 87.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "door.key",
+          "ChanceInPercent": 87.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "arrow.hv",
+          "ChanceInPercent": 75.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "burlap.gloves",
+          "ChanceInPercent": 75.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "hazmat.boots",
+          "ChanceInPercent": 75.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "syringe.medical",
+          "ChanceInPercent": 75.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "note",
+          "ChanceInPercent": 75.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "sign.wooden.medium",
+          "ChanceInPercent": 75.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "spikes.floor",
+          "ChanceInPercent": 75.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "grenade.beancan",
+          "ChanceInPercent": 75.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "machete",
+          "ChanceInPercent": 75.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "ammo.pistol",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "ammo.rocket.basic",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "ammo.shotgun",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "ammo.shotgun.slug",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "bucket.helmet",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "coffeecan.helmet",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "hat.miner",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "hazmat.gloves",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "hazmat.jacket",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "hazmat.pants",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "jacket.snow",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "jacket.snow3",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "riot.helmet",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "roadsign.jacket",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "roadsign.kilt",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "barricade.concrete",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "barricade.sandbags",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "barricade.stone",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "barricade.woodwire",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "box.wooden.large",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "lantern",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "sign.wooden.huge",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "sign.wooden.large",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "surveycharge",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "trap.bear",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "trap.landmine",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "crossbow",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "grenade.f1",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "hammer.salvaged",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "hatchet",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "icepick.salvaged",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "pistol.revolver",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "salvaged.sword",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "spear.stone",
+          "ChanceInPercent": 62.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "jacket",
+          "ChanceInPercent": 50.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "ammo.rifle",
+          "ChanceInPercent": 50.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "ammo.rocket.fire",
+          "ChanceInPercent": 50.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "ammo.rocket.hv",
+          "ChanceInPercent": 50.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "hazmat.helmet",
+          "ChanceInPercent": 50.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "jacket.snow2",
+          "ChanceInPercent": 50.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "barricade.metal",
+          "ChanceInPercent": 50.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "large.furnace",
+          "ChanceInPercent": 50.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "largemedkit",
+          "ChanceInPercent": 50.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "explosives",
+          "ChanceInPercent": 50.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "small.oil.refinery",
+          "ChanceInPercent": 50.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "fun.guitar",
+          "ChanceInPercent": 50.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "axe.salvaged",
+          "ChanceInPercent": 50.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "longsword",
+          "ChanceInPercent": 50.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "mace",
+          "ChanceInPercent": 50.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "pickaxe",
+          "ChanceInPercent": 50.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "pistol.semiauto",
+          "ChanceInPercent": 50.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "rocket.launcher",
+          "ChanceInPercent": 50.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "salvaged.cleaver",
+          "ChanceInPercent": 50.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "shotgun.pump",
+          "ChanceInPercent": 50.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "smg.2",
+          "ChanceInPercent": 50.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "smg.thompson",
+          "ChanceInPercent": 50.0,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "wall.external.high",
+          "ChanceInPercent": 37.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "ammo.pistol.fire",
+          "ChanceInPercent": 37.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "ammo.pistol.hv",
+          "ChanceInPercent": 37.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "ammo.rifle.explosive",
+          "ChanceInPercent": 37.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "ammo.rifle.incendiary",
+          "ChanceInPercent": 37.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "ammo.rifle.hv",
+          "ChanceInPercent": 37.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "ammo.rocket.smoke",
+          "ChanceInPercent": 37.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "metal.facemask",
+          "ChanceInPercent": 37.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "metal.plate.torso",
+          "ChanceInPercent": 37.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "rifle.ak",
+          "ChanceInPercent": 37.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "explosive.timed",
+          "ChanceInPercent": 37.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        },
+        {
+          "Name": "rifle.bolt",
+          "ChanceInPercent": 37.5,
+          "MinAmount": 1,
+          "MaxAmount": 1,
+          "IsBlueprint": true
+        }
+      ]
+    }
+  ],
+  "CommonSettings": {
+    "SupplySignalsEnabled": true,
+    "BuiltInAirdropEnabled": false,
+    "PluginAirdropTimerEnabled": true,
+    "MinDropFrequency": "01:00:00",
+    "MaxDropFrequency": "01:00:00",
+    "MinimumPlayerCount": 25,
+    "SupplyCrateDespawnTime": "00:05:00",
+    "NotifyOnPlaneSpawned": false,
+    "NotifyOnPlaneSpawnedMessage": "Cargo Plane has been spawned.",
+    "NotifyOnPlaneRemoved": false,
+    "NotifyOnPlaneRemovedMessage": "Cargo Plane has been removed, due to insufficient player count: {0}.",
+    "NotifyOnDropStarted": false,
+    "NotifyOnDropStartedMessage": "Supply Drop {0} has been spawned at {1},{2},{3}.",
+    "NotifyOnPlayerLootingStarted": false,
+    "NotifyOnPlayerLootingStartedMessage": "Player {0} started looting the Supply Drop {1}.",
+    "NotifyOnCollisionMessage": "Supply drop {0} has landed at {1},{2},{3}",
+    "NotifyOnCollision": false,
+    "NotifyOnDespawnMessage": "Supply drop {0} has been despawned at {1},{2},{3}",
+    "NotifyOnDespawn": false
+  }
+}

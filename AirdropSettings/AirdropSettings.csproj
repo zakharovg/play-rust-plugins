@@ -61,6 +61,10 @@
     <Reference Include="MySql.Data">
       <HintPath>RustDedicated_Data\Managed\MySql.Data.dll</HintPath>
     </Reference>
+    <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>RustDedicated_Data\Managed\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="NLua">
       <HintPath>RustDedicated_Data\Managed\NLua.dll</HintPath>
     </Reference>
@@ -104,6 +108,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AirdropExtended.cs" />
+    <Compile Include="ClanswithKickDefined.cs" />
     <Compile Include="EconomicsVip.cs" />
     <Compile Include="PrintItemNames.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
