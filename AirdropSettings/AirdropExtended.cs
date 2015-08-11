@@ -8,6 +8,7 @@ using AirdropExtended.Commands;
 using AirdropExtended.Diagnostics;
 using AirdropExtended.Permissions;
 using AirdropExtended.WeightedSearch;
+using JetBrains.Annotations;
 using Oxide.Core;
 using System;
 using System.Collections.Generic;
@@ -28,7 +29,7 @@ using Timer = Oxide.Core.Libraries.Timer;
 
 namespace Oxide.Plugins
 {
-	[Info(Constants.PluginName, "baton", "0.5.2", ResourceId = 1210)]
+	[Info(Constants.PluginName, "baton", "0.5.3", ResourceId = 1210)]
 	[Description("Customizable airdrop")]
 	public class AirdropExtended : RustPlugin
 	{
@@ -52,7 +53,7 @@ namespace Oxide.Plugins
 
 		private void Bootstrap()
 		{
-			_pluginSettingsRepository = new PluginSettingsRepository(Config);
+			_pluginSettingsRepository = new PluginSettingsRepository(Config, SaveConfig);
 			Load();
 
 			var commands = CommandFactory.Create(_settingsContext, _pluginSettingsRepository, _airdropController);
@@ -533,16 +534,20 @@ namespace AirdropExtended.Commands
 	{
 		private readonly SettingsContext _context;
 		private readonly AirdropController _controller;
+		private readonly PluginSettingsRepository _repository;
 
 		public LoadSettingsCommand(
-			SettingsContext context,
+			SettingsContext context, 
+			PluginSettingsRepository repository,
 			AirdropController controller)
 			: base("aire.load", "aire.canLoad")
 		{
 			if (context == null) throw new ArgumentNullException("context");
+			if (repository == null) throw new ArgumentNullException("repository");
 			if (controller == null) throw new ArgumentNullException("controller");
 
 			_context = context;
+			_repository = repository;
 			_controller = controller;
 		}
 
@@ -565,6 +570,7 @@ namespace AirdropExtended.Commands
 
 			_context.SettingsName = settingsName;
 			_context.Settings = AidropSettingsRepository.LoadFrom(settingsName);
+			_repository.SaveSettingsName(_context.SettingsName);
 			_controller.ApplySettings();
 		}
 
@@ -637,6 +643,8 @@ namespace AirdropExtended.Commands
 				PrintUsage(player);
 				return;
 			}
+
+			Diagnostics.Diagnostics.MessageToServerAndPlayer(player, "Saving settings to: {0}", settingsName);
 
 			_pluginSettingsRepository.SaveSettingsName(settingsName);
 			AidropSettingsRepository.SaveTo(settingsName, _context.Settings);
@@ -1134,7 +1142,7 @@ namespace AirdropExtended.Commands
 
 			return new List<AirdropExtendedCommand>
 				{
-					new LoadSettingsCommand(context, controller),
+					new LoadSettingsCommand(context, settingsRepository, controller),
 					new ReloadSettingsCommand(context, settingsRepository, controller),
 					new SaveSettingsCommand(context, settingsRepository),
 					new GenerateDefaultSettingsAndSaveCommand(),
@@ -1158,11 +1166,14 @@ namespace AirdropExtended.PluginSettings
 	public sealed class PluginSettingsRepository
 	{
 		private readonly DynamicConfigFile _config;
+		private readonly Action _saveConfigDelegate;
 
-		public PluginSettingsRepository(DynamicConfigFile config)
+		public PluginSettingsRepository(DynamicConfigFile config, Action saveConfigDelegate)
 		{
 			if (config == null) throw new ArgumentNullException("config");
+			if (saveConfigDelegate == null) throw new ArgumentNullException("saveConfigDelegate");
 			_config = config;
+			_saveConfigDelegate = saveConfigDelegate;
 		}
 
 		private const string DefaultSettingsName = "defaultSettings";
@@ -1189,6 +1200,7 @@ namespace AirdropExtended.PluginSettings
 				settingsName = DefaultSettingsName;
 
 			_config["settingsName"] = settingsName;
+			_saveConfigDelegate();
 		}
 	}
 }
@@ -1633,7 +1645,7 @@ namespace AirdropExtended.Airdrop.Settings
 			get { return _minAmount; }
 			set { _minAmount = value < 0 ? 0 : value; }
 		}
-
+		
 		public int MaxAmount
 		{
 			get { return _maxAmount; }
