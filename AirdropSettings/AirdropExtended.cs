@@ -8,7 +8,6 @@ using AirdropExtended.Commands;
 using AirdropExtended.Diagnostics;
 using AirdropExtended.Permissions;
 using AirdropExtended.WeightedSearch;
-using JetBrains.Annotations;
 using Oxide.Core;
 using System;
 using System.Collections.Generic;
@@ -537,7 +536,7 @@ namespace AirdropExtended.Commands
 		private readonly PluginSettingsRepository _repository;
 
 		public LoadSettingsCommand(
-			SettingsContext context, 
+			SettingsContext context,
 			PluginSettingsRepository repository,
 			AirdropController controller)
 			: base("aire.load", "aire.canLoad")
@@ -1463,9 +1462,9 @@ namespace AirdropExtended.Airdrop.Settings
 
 		public PickStrategy PickStrategy { get; set; }
 
-		public List<AirdropItemGroup> ItemGroups { get; set; }
-
 		public CommonSettings CommonSettings { get; set; }
+
+		public List<AirdropItemGroup> ItemGroups { get; set; }
 
 		public List<Item> CreateItemList()
 		{
@@ -1645,7 +1644,7 @@ namespace AirdropExtended.Airdrop.Settings
 			get { return _minAmount; }
 			set { _minAmount = value < 0 ? 0 : value; }
 		}
-		
+
 		public int MaxAmount
 		{
 			get { return _maxAmount; }
@@ -1663,6 +1662,7 @@ namespace AirdropExtended.Airdrop.Settings
 	public sealed class CommonSettings
 	{
 		public static readonly TimeSpan DefaultDropFrequency = TimeSpan.FromHours(1);
+		private const int DefaultMaximumNumberOfPlanesInTheAir = 10;
 
 		public const string DefaultNotifyOnPlaneSpawnedMessage = "Cargo Plane has been spawned.";
 		public const string DefaultNotifyOnPlaneRemovedMessage = "Cargo Plane has been removed, due to insufficient player count: {0}.";
@@ -1670,6 +1670,8 @@ namespace AirdropExtended.Airdrop.Settings
 		public const string DefaultNotifyOnPlayerLootingStartedMessage = "Player {0} started looting the Supply Drop {1}.";
 		private const string DefaultNotifyOnCollisionMessage = "Supply drop {0} has landed at {1},{2},{3}";
 		private const string DefaultNotifyOnDespawnMessage = "Supply drop {0} has been despawned at {1},{2},{3}";
+
+		private int _maximumNumberOfPlanesInTheAir;
 
 		public Boolean SupplySignalsEnabled { get; set; }
 		public Boolean BuiltInAirdropEnabled { get; set; }
@@ -1698,6 +1700,17 @@ namespace AirdropExtended.Airdrop.Settings
 
 		public string NotifyOnDespawnMessage { get; set; }
 		public bool NotifyOnDespawn { get; set; }
+
+		public int MaximumNumberOfPlanesInTheAir
+		{
+			get { return _maximumNumberOfPlanesInTheAir; }
+			set
+			{
+				_maximumNumberOfPlanesInTheAir = value < 0
+					? DefaultMaximumNumberOfPlanesInTheAir
+					: value;
+			}
+		}
 
 		public CommonSettings()
 		{
