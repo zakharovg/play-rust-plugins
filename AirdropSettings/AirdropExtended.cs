@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using System.Reflection;
 using AirdropExtended;
 using AirdropExtended.Airdrop.Services;
 using AirdropExtended.Airdrop.Settings;
@@ -28,7 +29,7 @@ using Timer = Oxide.Core.Libraries.Timer;
 
 namespace Oxide.Plugins
 {
-	[Info(Constants.PluginName, "baton", "0.5.3", ResourceId = 1210)]
+	[Info(Constants.PluginName, "baton", "0.6.4", ResourceId = 1210)]
 	[Description("Customizable airdrop")]
 	public class AirdropExtended : RustPlugin
 	{
@@ -207,6 +208,24 @@ namespace Oxide.Plugins
 			_commands["aire.capacity"].ExecuteFromChat(player, command, args);
 		}
 
+		[ChatCommand("aire.enableplanelimit")]
+		private void EnablePlaneLimitChatCommand(BasePlayer player, string command, string[] args)
+		{
+			_commands["aire.enableplanelimit"].ExecuteFromChat(player, command, args);
+		}
+
+		[ChatCommand("aire.planelimit")]
+		private void SetPlaneLimitChatCommand(BasePlayer player, string command, string[] args)
+		{
+			_commands["aire.planelimit"].ExecuteFromChat(player, command, args);
+		}
+
+		[ChatCommand("aire.planespeed")]
+		private void SetPlaneSpeedChatCommand(BasePlayer player, string command, string[] args)
+		{
+			_commands["aire.planespeed"].ExecuteFromChat(player, command, args);
+		}
+
 		#endregion
 	}
 }
@@ -348,6 +367,27 @@ namespace AirdropExtended.Behaviors
 			despawnBehavior.TimeoutInSeconds = timeoutInSeconds;
 			despawnBehavior.NotifyOnDespawn = settings.NotifyOnDespawn;
 			despawnBehavior.NotifyOnDespawnMessage = settings.NotifyOnDespawnMessage;
+		}
+	}
+
+	public sealed class PlaneNotifyOnDestroyBehavior : MonoBehaviour
+	{
+		public Action<CargoPlane> Callback { get; set; }
+
+		void OnDestroy()
+		{
+			Diagnostics.Diagnostics.MessageToServer("On destroy plane");
+			if (Callback == null)
+				return;
+
+			var cargoPlane = GetComponent<CargoPlane>();
+			if (cargoPlane != null)
+			{
+				Callback(cargoPlane);
+				Diagnostics.Diagnostics.MessageToServer("cargoPlane [id:{0}] was destroyed", cargoPlane.GetInstanceID());
+			}
+
+			Callback = null;
 		}
 	}
 
@@ -905,6 +945,113 @@ namespace AirdropExtended.Commands
 		}
 	}
 
+	public class SetPlaneSpeedCommand : AirdropExtendedCommand
+	{
+		private readonly SettingsContext _context;
+		private readonly AirdropController _controller;
+
+		public SetPlaneSpeedCommand(SettingsContext context, AirdropController controller)
+			: base("aire.planespeed", "aire.canPlaneSpeed")
+		{
+			if (context == null) throw new ArgumentNullException("context");
+			if (controller == null) throw new ArgumentNullException("controller");
+			_context = context;
+			_controller = controller;
+		}
+
+		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		{
+			if (!arg.HasArgs())
+			{
+				PrintUsage(player);
+				return;
+			}
+
+			var planeSpeedInSeconds = arg.GetInt(0);
+			_context.Settings.CommonSettings.PlaneSpeedInSeconds = planeSpeedInSeconds;
+
+			Diagnostics.Diagnostics.MessageToServerAndPlayer(player, "Setting plane speed in seconds to {0}", planeSpeedInSeconds);
+			_controller.ApplySettings();
+		}
+
+		protected override string GetUsageString()
+		{
+			return GetDefaultUsageString("300");
+		}
+	}
+
+	public class SetPlaneLimitEnabledCommand : AirdropExtendedCommand
+	{
+		private readonly SettingsContext _context;
+		private readonly AirdropController _controller;
+
+		public SetPlaneLimitEnabledCommand(SettingsContext context, AirdropController controller)
+			: base("aire.enableplanelimit", "aire.canEnablePlaneLimit")
+		{
+			if (context == null) throw new ArgumentNullException("context");
+			if (controller == null) throw new ArgumentNullException("controller");
+			_context = context;
+			_controller = controller;
+		}
+
+		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		{
+			if (!arg.HasArgs())
+			{
+				PrintUsage(player);
+				return;
+			}
+
+			var maximumPlaneLimitEnabled = arg.GetBool(0);
+
+			_context.Settings.CommonSettings.MaximumPlaneLimitEnabled = maximumPlaneLimitEnabled;
+
+			Diagnostics.Diagnostics.MessageToServerAndPlayer(player, "Setting plane limit enabled to {0}", maximumPlaneLimitEnabled);
+			_controller.ApplySettings();
+		}
+
+		protected override string GetUsageString()
+		{
+			return GetDefaultUsageString("true");
+		}
+	}
+
+	public class SetPlaneLimitCommand : AirdropExtendedCommand
+	{
+		private readonly SettingsContext _context;
+		private readonly AirdropController _controller;
+
+		public SetPlaneLimitCommand(SettingsContext context, AirdropController controller)
+			: base("aire.planelimit", "aire.canPlaneLimit")
+		{
+			if (context == null) throw new ArgumentNullException("context");
+			if (controller == null) throw new ArgumentNullException("controller");
+			_context = context;
+			_controller = controller;
+		}
+
+		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		{
+			if (!arg.HasArgs())
+			{
+				PrintUsage(player);
+				return;
+			}
+
+			var planeLimit = arg.GetInt(0);
+			planeLimit = planeLimit < 0 ? 0 : planeLimit;
+			_context.Settings.CommonSettings.MaximumNumberOfPlanesInTheAir = planeLimit;
+
+			Diagnostics.Diagnostics.MessageToServerAndPlayer(player, "Setting plane in air limit to {0}", planeLimit);
+			_controller.ApplySettings();
+		}
+
+		protected override string GetUsageString()
+		{
+			return GetDefaultUsageString("10");
+		}
+	}
+
 	public class SetDespawnTimeCommand : AirdropExtendedCommand
 	{
 		private readonly SettingsContext _context;
@@ -1152,6 +1299,9 @@ namespace AirdropExtended.Commands
 					new SetTimerEnabledCommand(context, controller),
 					new SetSupplyDropEnabledCommand(context, controller),
 					new SetDespawnTimeCommand(context, controller),
+					new SetPlaneLimitCommand(context, controller),
+					new SetPlaneLimitEnabledCommand(context, controller),
+					new SetPlaneSpeedCommand(context, controller),
 					new SetItemSettingsCommand(context, controller),
 					new SetItemGroupSettingsCommand(context, controller),
 					new SetAirdropCapacityCommand(context, controller)
@@ -1247,6 +1397,71 @@ namespace AirdropExtended.WeightedSearch
 
 namespace AirdropExtended.Airdrop.Services
 {
+	internal sealed class CargoPlaneData
+	{
+		private readonly Vector3 _targetPos;
+		private readonly float _secondsToTake;
+
+		public CargoPlaneData(Vector3 targetPos, float secondsToTake)
+		{
+			_targetPos = targetPos;
+			_secondsToTake = secondsToTake;
+		}
+
+		public Vector3 TargetPos
+		{
+			get { return _targetPos; }
+		}
+
+		public float SecondsToTake
+		{
+			get { return _secondsToTake; }
+		}
+	}
+
+	internal static class CargoPlaneFields
+	{
+		public static readonly FieldInfo DropPositionField = typeof(CargoPlane).GetField("dropPosition", (BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance | BindingFlags.NonPublic));
+		public static readonly FieldInfo SecondsToTakeField = typeof(CargoPlane).GetField("secondsToTake", (BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance | BindingFlags.NonPublic));
+	}
+
+	internal sealed class CargoPlaneFactory
+	{
+		public static CargoPlane CreatePlane()
+		{
+			var plane = (CargoPlane)GameManager.server.CreateEntity(
+				"assets/bundled/prefabs/events/cargo_plane.prefab",
+				new Vector3(),
+				new Quaternion());
+
+			CargoPlaneFields.SecondsToTakeField.SetValue(plane, 5);
+			return plane;
+		}
+
+		public static CargoPlane CreatePlane(CargoPlaneData data)
+		{
+			var plane = (CargoPlane)GameManager.server.CreateEntity(
+				"assets/bundled/prefabs/events/cargo_plane.prefab",
+				new Vector3(),
+				new Quaternion());
+			if (plane == null)
+				return null;
+
+			CargoPlaneFields.DropPositionField.SetValue(plane, data.TargetPos);
+			CargoPlaneFields.SecondsToTakeField.SetValue(plane, 5);
+
+			return plane;
+		}
+
+		public static CargoPlaneData CreateData(CargoPlane plane)
+		{
+			var dropPositionObject = CargoPlaneFields.DropPositionField.GetValue(plane);
+			var secondsToTakeObject = CargoPlaneFields.SecondsToTakeField.GetValue(plane);
+
+			return new CargoPlaneData((Vector3)dropPositionObject, (float)secondsToTakeObject);
+		}
+	}
+
 	public sealed class AirdropTimerService
 	{
 		public static TimeSpan DefaultTimerInterval = TimeSpan.FromHours(1);
@@ -1285,10 +1500,7 @@ namespace AirdropExtended.Airdrop.Services
 			{
 				Diagnostics.Diagnostics.MessageToServer("running timed airdrop");
 
-				var plane = GameManager.server.CreateEntity(
-					"assets/bundled/prefabs/events/cargo_plane.prefab",
-					new Vector3(),
-					new Quaternion());
+				var plane = CargoPlaneFactory.CreatePlane();
 				if (plane != null)
 					plane.Spawn();
 			}
@@ -1313,10 +1525,150 @@ namespace AirdropExtended.Airdrop.Services
 		}
 	}
 
+	public sealed class CargoPlaneLaunchedEventArgs : EventArgs
+	{
+		public CargoPlaneLaunchedEventArgs(CargoPlane plane)
+		{
+			Plane = plane;
+		}
+
+		public CargoPlane Plane { get; set; }
+	}
+
+	public sealed class CargoPlaneQueueService
+	{
+		private const int DelayBetweenPlaneTryLaunch = 5000;
+		private readonly List<CargoPlane> _planesInAir = new List<CargoPlane>();
+		private readonly Queue<CargoPlaneData> _planesInQueue = new Queue<CargoPlaneData>();
+
+		private int _maximumNumberOfPlanesInTheAir = CommonSettings.DefaultMaximumNumberOfPlanesInTheAir;
+
+		public EventHandler<CargoPlaneLaunchedEventArgs> OnPlaneLaunched = (sender, args) => { };
+		private bool _isEnabled;
+
+		public void UpdateQueue(CommonSettings settings)
+		{
+			if (settings == null) throw new ArgumentNullException("settings");
+
+			_isEnabled = settings.MaximumPlaneLimitEnabled;
+			Diagnostics.Diagnostics.MessageToServer("Plane limit enabled:{0}", _isEnabled);
+			if (!settings.MaximumPlaneLimitEnabled)
+			{
+				Diagnostics.Diagnostics.MessageToServer("clearing queue");
+				ClearQueueAndSetDefault();
+				return;
+			}
+
+			var currentSettingValue = AdjustNumberOfPlanesInAir(settings);
+
+			_maximumNumberOfPlanesInTheAir = currentSettingValue;
+		}
+
+		private void ClearQueueAndSetDefault()
+		{
+			var count = _planesInQueue.Count;
+			if (count > 0)
+			{
+				for (int i = 0; i < count; i++)
+					LaunchPlaneFromQueue();
+			}
+
+			_planesInAir.Clear();
+			_planesInQueue.Clear();
+			_maximumNumberOfPlanesInTheAir = 0;
+		}
+
+		private int AdjustNumberOfPlanesInAir(CommonSettings settings)
+		{
+			var currentSettingValue = settings.MaximumNumberOfPlanesInTheAir;
+			var currentPlanesInAir = UnityEngine.Object.FindObjectsOfType<CargoPlane>() ?? Enumerable.Empty<CargoPlane>().ToArray();
+
+			var numberOfAvailablePlanesToLaunch = currentSettingValue - currentPlanesInAir.Length;
+			if (numberOfAvailablePlanesToLaunch > 0)
+			{
+				for (int i = 0; i < numberOfAvailablePlanesToLaunch; i++)
+					LaunchPlaneFromQueue();
+			}
+
+			currentPlanesInAir = UnityEngine.Object.FindObjectsOfType<CargoPlane>() ?? Enumerable.Empty<CargoPlane>().ToArray();
+			_planesInAir.Clear();
+			_planesInAir.AddRange(currentPlanesInAir);
+
+			foreach (var cargoPlane in currentPlanesInAir)
+			{
+				if (cargoPlane.GetComponent<PlaneNotifyOnDestroyBehavior>() == null)
+					AddDestroyBehavior(cargoPlane);
+			}
+			return currentSettingValue;
+		}
+
+		public void Enqueue(CargoPlane plane)
+		{
+			if (plane == null) throw new ArgumentNullException("plane");
+
+			if (_isEnabled)
+			{
+				if (_planesInAir.Count >= _maximumNumberOfPlanesInTheAir)
+				{
+					var planeData = CargoPlaneFactory.CreateData(plane);
+					_planesInQueue.Enqueue(planeData);
+					plane.KillMessage();
+					return;
+				}
+
+				AddDestroyBehavior(plane);
+				_planesInAir.Add(plane);
+			}
+			RaiseCargoPlaneLaunchedEvent(plane);
+		}
+
+		private void AddDestroyBehavior(CargoPlane plane)
+		{
+			plane.gameObject.AddComponent<PlaneNotifyOnDestroyBehavior>();
+			plane.GetComponent<PlaneNotifyOnDestroyBehavior>().Callback = OnPlaneDestroyed;
+		}
+
+		private void RaiseCargoPlaneLaunchedEvent(CargoPlane plane)
+		{
+			if (OnPlaneLaunched != null)
+				OnPlaneLaunched(this, new CargoPlaneLaunchedEventArgs(plane));
+		}
+
+		private void OnPlaneDestroyed(CargoPlane plane)
+		{
+			if (plane == null) throw new ArgumentNullException("plane");
+
+			_planesInAir.Remove(plane);
+			LaunchPlaneFromQueue();
+		}
+
+		private void LaunchPlaneFromQueue()
+		{
+			if (_planesInQueue.Count <= 0)
+				return;
+
+			var cargoPlaneData = _planesInQueue.Peek();
+			if (cargoPlaneData == null)
+				return;
+
+			var plane = CargoPlaneFactory.CreatePlane(cargoPlaneData);
+			if (plane == null)
+			{
+				Interface.GetMod().GetLibrary<Timer>().Once(DelayBetweenPlaneTryLaunch, LaunchPlaneFromQueue);
+			}
+			else
+			{
+				_planesInQueue.Dequeue();
+				plane.Spawn();
+			}
+		}
+	}
+
 	public sealed class AirdropController
 	{
 		private readonly SettingsContext _context;
 		private readonly AirdropTimerService _timerService = new AirdropTimerService();
+		private readonly CargoPlaneQueueService _cargoPlaneQueueService = new CargoPlaneQueueService();
 
 		public AirdropController(SettingsContext context)
 		{
@@ -1343,6 +1695,15 @@ namespace AirdropExtended.Airdrop.Services
 		{
 			_timerService.StopAirdropTimer();
 			SupplyDropBehaviorService.RemoveCustomBehaviorsFromSupplyDrops();
+			_cargoPlaneQueueService.OnPlaneLaunched -= OnPlaneLaunched;
+		}
+
+		private void OnPlaneLaunched(object sender, CargoPlaneLaunchedEventArgs cargoPlaneLaunchedEventArgs)
+		{
+			Diagnostics.Diagnostics.MessageTo(_context.Settings.CommonSettings.NotifyOnPlaneSpawnedMessage, _context.Settings.CommonSettings.NotifyOnPlaneSpawned);
+			var plane = cargoPlaneLaunchedEventArgs.Plane;
+
+			CargoPlaneFields.SecondsToTakeField.SetValue(plane, _context.Settings.CommonSettings.PlaneSpeedInSeconds);
 		}
 
 		private void InitializeServices(AirdropSettings settings)
@@ -1350,6 +1711,8 @@ namespace AirdropExtended.Airdrop.Services
 			SetupBuiltInAirdrop();
 			SupplyDropBehaviorService.AttachCustomBehaviorsToSupplyDrops(settings);
 			_timerService.StartAirdropTimer(settings);
+			_cargoPlaneQueueService.OnPlaneLaunched += OnPlaneLaunched;
+			_cargoPlaneQueueService.UpdateQueue(settings.CommonSettings);
 		}
 
 		public void OnEntitySpawned(BaseEntity entity)
@@ -1357,11 +1720,13 @@ namespace AirdropExtended.Airdrop.Services
 			if (entity == null)
 				return;
 
-			if (entity is SupplyDrop)
-				HandleSupply(entity as SupplyDrop);
+			var supplyDrop = entity as SupplyDrop;
+			if (supplyDrop != null)
+				HandleSupply(supplyDrop);
 
-			if (entity is CargoPlane)
-				NotifyOnPlane();
+			var cargoPlane = entity as CargoPlane;
+			if (cargoPlane != null)
+				_cargoPlaneQueueService.Enqueue(cargoPlane);
 		}
 
 		private void HandleSupply(SupplyDrop entity)
@@ -1398,11 +1763,6 @@ namespace AirdropExtended.Airdrop.Services
 				item.MoveToContainer(itemContainer, -1, false);
 		}
 
-		private void NotifyOnPlane()
-		{
-			Diagnostics.Diagnostics.MessageTo(_context.Settings.CommonSettings.NotifyOnPlaneSpawnedMessage, _context.Settings.CommonSettings.NotifyOnPlaneSpawned);
-		}
-
 		private void SetupBuiltInAirdrop()
 		{
 			var schedule = UnityEngine.Object.FindObjectsOfType<EventSchedule>().First();
@@ -1424,7 +1784,16 @@ namespace AirdropExtended.Airdrop.Services
 				return;
 
 			entity.KillMessage();
-			Diagnostics.Diagnostics.MessageToPlayer(player, "Supply signals are disabled by server.");
+
+			var signalItem = ItemManager.CreateByName("supply.signal");
+			var playerBeltHasEnoughSpace = player.inventory.containerBelt.itemList.Count != player.inventory.containerBelt.capacity;
+			var containerToAddItemTo = playerBeltHasEnoughSpace
+				? player.inventory.containerBelt
+				: player.inventory.containerMain;
+			signalItem.MoveToContainer(containerToAddItemTo, -1, false);
+
+			if (_context.Settings.CommonSettings.NotifyOnSupplySingalDisabled)
+				Diagnostics.Diagnostics.MessageToPlayer(player, _context.Settings.CommonSettings.NotifyOnSupplySingalDisabledMessage);
 		}
 	}
 }
@@ -1662,7 +2031,7 @@ namespace AirdropExtended.Airdrop.Settings
 	public sealed class CommonSettings
 	{
 		public static readonly TimeSpan DefaultDropFrequency = TimeSpan.FromHours(1);
-		private const int DefaultMaximumNumberOfPlanesInTheAir = 10;
+		public const int DefaultMaximumNumberOfPlanesInTheAir = 10;
 
 		public const string DefaultNotifyOnPlaneSpawnedMessage = "Cargo Plane has been spawned.";
 		public const string DefaultNotifyOnPlaneRemovedMessage = "Cargo Plane has been removed, due to insufficient player count: {0}.";
@@ -1670,6 +2039,7 @@ namespace AirdropExtended.Airdrop.Settings
 		public const string DefaultNotifyOnPlayerLootingStartedMessage = "Player {0} started looting the Supply Drop {1}.";
 		private const string DefaultNotifyOnCollisionMessage = "Supply drop {0} has landed at {1},{2},{3}";
 		private const string DefaultNotifyOnDespawnMessage = "Supply drop {0} has been despawned at {1},{2},{3}";
+		private const string DefaultNotifyOnSupplySingalDisabledMessage = "Supply signals are disabled by server. An item has been added to your invertory/belt.";
 
 		private int _maximumNumberOfPlanesInTheAir;
 
@@ -1698,6 +2068,9 @@ namespace AirdropExtended.Airdrop.Settings
 		public string NotifyOnCollisionMessage { get; set; }
 		public bool NotifyOnCollision { get; set; }
 
+		public string NotifyOnSupplySingalDisabledMessage { get; set; }
+		public bool NotifyOnSupplySingalDisabled { get; set; }
+
 		public string NotifyOnDespawnMessage { get; set; }
 		public bool NotifyOnDespawn { get; set; }
 
@@ -1706,11 +2079,14 @@ namespace AirdropExtended.Airdrop.Settings
 			get { return _maximumNumberOfPlanesInTheAir; }
 			set
 			{
-				_maximumNumberOfPlanesInTheAir = value < 0
+				_maximumNumberOfPlanesInTheAir = value <= 0
 					? DefaultMaximumNumberOfPlanesInTheAir
 					: value;
 			}
 		}
+
+		public bool MaximumPlaneLimitEnabled { get; set; }
+		public int PlaneSpeedInSeconds { get; set; }
 
 		public CommonSettings()
 		{
@@ -1732,9 +2108,14 @@ namespace AirdropExtended.Airdrop.Settings
 			NotifyOnDespawnMessage = DefaultNotifyOnDespawnMessage;
 			NotifyOnDespawn = false;
 
+			NotifyOnSupplySingalDisabled = true;
+			NotifyOnSupplySingalDisabledMessage = DefaultNotifyOnSupplySingalDisabledMessage;
+
 			SupplySignalsEnabled = true;
 			BuiltInAirdropEnabled = false;
 			PluginAirdropTimerEnabled = true;
+			MaximumPlaneLimitEnabled = false;
+			PlaneSpeedInSeconds = 300;
 		}
 
 		public static CommonSettings CreateDefault()
@@ -1746,22 +2127,34 @@ namespace AirdropExtended.Airdrop.Settings
 				MinimumPlayerCount = 25,
 				SupplyCrateDespawnTime = TimeSpan.FromMinutes(5),
 
+				MaximumNumberOfPlanesInTheAir = DefaultMaximumNumberOfPlanesInTheAir,
+				MaximumPlaneLimitEnabled = false,
+
 				NotifyOnPlaneSpawned = false,
 				NotifyOnPlaneSpawnedMessage = DefaultNotifyOnPlaneSpawnedMessage,
+				
 				NotifyOnPlaneRemoved = false,
 				NotifyOnPlaneRemovedMessage = DefaultNotifyOnPlaneRemovedMessage,
+				
 				NotifyOnDropStarted = false,
 				NotifyOnDropStartedMessage = DefaultNotifyOnDropStartedMessage,
+				
 				NotifyOnPlayerLootingStarted = false,
 				NotifyOnPlayerLootingStartedMessage = DefaultNotifyOnPlayerLootingStartedMessage,
+				
 				NotifyOnCollision = false,
 				NotifyOnCollisionMessage = DefaultNotifyOnCollisionMessage,
+				
 				NotifyOnDespawn = false,
 				NotifyOnDespawnMessage = DefaultNotifyOnDespawnMessage,
+				
+				NotifyOnSupplySingalDisabled = true,
+				NotifyOnSupplySingalDisabledMessage = DefaultNotifyOnSupplySingalDisabledMessage,
 
 				SupplySignalsEnabled = true,
 				BuiltInAirdropEnabled = false,
-				PluginAirdropTimerEnabled = true
+				PluginAirdropTimerEnabled = true,
+				PlaneSpeedInSeconds = 300
 			};
 		}
 	}
