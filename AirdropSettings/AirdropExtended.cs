@@ -62,7 +62,7 @@ namespace Oxide.Plugins
 
 			_commands = commands.ToDictionary(c => c.Name, c => c);
 			var consoleSystem = Interface.Oxide.GetLibrary<Command>();
-			foreach (var command in commands)
+			foreach (var command in commands.Where(c => !c.IsChatOnly))
 			{
 				var command1 = command;
 				consoleSystem.AddConsoleCommand(command.Name, this, arg =>
@@ -101,11 +101,11 @@ namespace Oxide.Plugins
 			if (lootInventory == null || targetEntity == null || supplyDrop == null)
 				return;
 
-			var commonSettings = _settingsContext.Settings.CommonSettings;
+			var settings = _settingsContext.Settings;
 
 			Diagnostics.MessageTo(
-				commonSettings.NotifyOnPlayerLootingStartedMessage,
-				commonSettings.NotifyOnPlayerLootingStarted,
+				settings.Localization.NotifyOnPlayerLootingStartedMessage,
+				settings.CommonSettings.NotifyOnPlayerLootingStarted,
 				lootInventory.GetComponent<BasePlayer>().displayName,
 				supplyDrop.net.ID);
 		}
@@ -226,6 +226,30 @@ namespace Oxide.Plugins
 			_commands["aire.planespeed"].ExecuteFromChat(player, command, args);
 		}
 
+		[ChatCommand("aire.drop")]
+		private void CallRandomDropChatCommand(BasePlayer player, string command, string[] args)
+		{
+			_commands["aire.drop"].ExecuteFromChat(player, command, args);
+		}
+
+		[ChatCommand("aire.topos")]
+		private void CallDropToPosChatCommand(BasePlayer player, string command, string[] args)
+		{
+			_commands["aire.topos"].ExecuteFromChat(player, command, args);
+		}
+
+		[ChatCommand("aire.toplayer")]
+		private void CallDropToPlayerChatCommand(BasePlayer player, string command, string[] args)
+		{
+			_commands["aire.toplayer"].ExecuteFromChat(player, command, args);
+		}
+
+		[ChatCommand("aire.tome")]
+		private void CallDropToMeChatCommand(BasePlayer player, string command, string[] args)
+		{
+			_commands["aire.tome"].ExecuteFromChat(player, command, args);
+		}
+
 		#endregion
 	}
 }
@@ -246,40 +270,29 @@ namespace AirdropExtended
 
 namespace AirdropExtended.Rust.Extensions
 {
-	public enum CompassDirection
+	public static class LocalizationExtensions
 	{
-		North,
-		NorthEast,
-		East,
-		SouthEast,
-		South,
-		SouthWest,
-		West,
-		NorthWest,
-		None
-	}
-
-	public static class Extensions
-	{
-		public static CompassDirection GetDirectionsFromAngle(float angle)
+		public static string GetDirectionsFromAngle(float angle, DirectionLocalizationSettings settings)
 		{
+			if (settings == null) throw new ArgumentNullException("settings");
+
 			if (angle > 337.5 || angle < 22.5)
-				return CompassDirection.North;
+				return settings.North;
 			if (angle > 22.5 && angle < 67.5)
-				return CompassDirection.NorthEast;
+				return settings.NorthEast;
 			if (angle > 67.5 && angle < 112.5)
-				return CompassDirection.East;
+				return settings.East;
 			if (angle > 112.5 && angle < 157.5)
-				return CompassDirection.SouthEast;
+				return settings.SouthEast;
 			if (angle > 157.5 && angle < 202.5)
-				return CompassDirection.South;
+				return settings.South;
 			if (angle > 202.5 && angle < 247.5)
-				return CompassDirection.SouthWest;
+				return settings.SouthWest;
 			if (angle > 247.5 && angle < 292.5)
-				return CompassDirection.West;
+				return settings.West;
 			if (angle > 292.5 && angle < 337.5)
-				return CompassDirection.NorthWest;
-			return CompassDirection.None;
+				return settings.NorthWest;
+			return string.Empty;
 		}
 	}
 }
@@ -302,6 +315,8 @@ namespace AirdropExtended.Behaviors
 		public string NotifyAboutDirectionAroundOnDropLandMessage { get; set; }
 
 		public int DropNotifyMaxDistance { get; set; }
+
+		public DirectionLocalizationSettings Settings { get; set; }
 
 		public SupplyDropLandedBehavior()
 		{
@@ -333,7 +348,7 @@ namespace AirdropExtended.Behaviors
 				var dropVector = (baseEntity.transform.position - player.eyes.position).normalized;
 				var rotation = Quaternion.LookRotation(dropVector);
 
-				var compassDirection = Extensions.GetDirectionsFromAngle(rotation.eulerAngles.y);
+				var compassDirection = LocalizationExtensions.GetDirectionsFromAngle(rotation.eulerAngles.y, Settings);
 				if (DropNotifyMaxDistance < distance)
 					continue;
 
@@ -348,24 +363,29 @@ namespace AirdropExtended.Behaviors
 				despawnBehavior.Despawn();
 		}
 
-		public static void AddTo(BaseEntity entity, CommonSettings settings)
+		public static void AddTo(
+			BaseEntity entity,
+			AirdropSettings settings)
 		{
 			if (entity == null) throw new ArgumentNullException("entity");
 			if (settings == null) throw new ArgumentNullException("settings");
+
 			entity.gameObject.AddComponent<SupplyDropLandedBehavior>();
 
 			var dropCollisionCheck = entity.gameObject.GetComponent<SupplyDropLandedBehavior>();
 
-			dropCollisionCheck.NotifyOnLanded = settings.NotifyOnCollision;
-			dropCollisionCheck.NotifyOnLandedMessage = settings.NotifyOnCollisionMessage;
+			dropCollisionCheck.NotifyOnLanded = settings.CommonSettings.NotifyOnCollision;
+			dropCollisionCheck.NotifyOnLandedMessage = settings.Localization.NotifyOnCollisionMessage;
 
-			dropCollisionCheck.DropNotifyMaxDistance = settings.DropNotifyMaxDistance;
+			dropCollisionCheck.DropNotifyMaxDistance = settings.CommonSettings.DropNotifyMaxDistance;
 
-			dropCollisionCheck.NotifyAboutDirectionAroundOnDropLand = settings.NotifyAboutDirectionAroundOnDropLand;
-			dropCollisionCheck.NotifyAboutDirectionAroundOnDropLandMessage = settings.NotifyAboutDirectionAroundOnDropLandMessage;
+			dropCollisionCheck.NotifyAboutDirectionAroundOnDropLand = settings.CommonSettings.NotifyAboutDirectionAroundOnDropLand;
+			dropCollisionCheck.NotifyAboutDirectionAroundOnDropLandMessage = settings.Localization.NotifyAboutDirectionAroundOnDropLandMessage;
 
-			dropCollisionCheck.NotifyAboutPlayersAroundOnDropLand = settings.NotifyAboutPlayersAroundOnDropLand;
-			dropCollisionCheck.NotifyAboutPlayersAroundOnDropLandMessage = settings.NotifyAboutPlayersAroundOnDropLandMessage;
+			dropCollisionCheck.NotifyAboutPlayersAroundOnDropLand = settings.CommonSettings.NotifyAboutPlayersAroundOnDropLand;
+			dropCollisionCheck.NotifyAboutPlayersAroundOnDropLandMessage = settings.Localization.NotifyAboutPlayersAroundOnDropLandMessage;
+
+			dropCollisionCheck.Settings = settings.Localization.Directions;
 		}
 
 	}
@@ -426,22 +446,23 @@ namespace AirdropExtended.Behaviors
 			_isTriggered = false;
 		}
 
-		public static void AddTo(BaseEntity supplyDrop, CommonSettings settings)
+		public static void AddTo(BaseEntity supplyDrop, AirdropSettings settings)
 		{
 			if (supplyDrop == null) throw new ArgumentNullException("supplyDrop");
 			if (settings == null) throw new ArgumentNullException("settings");
 
-			if (settings.SupplyCrateDespawnTime <= TimeSpan.Zero)
+			var supplyCrateDespawnTime = settings.CommonSettings.SupplyCrateDespawnTime;
+			if (supplyCrateDespawnTime <= TimeSpan.Zero)
 				return;
 
-			var timeoutInSeconds = Convert.ToSingle(settings.SupplyCrateDespawnTime.TotalSeconds);
+			var timeoutInSeconds = Convert.ToSingle(supplyCrateDespawnTime.TotalSeconds);
 
 			supplyDrop.gameObject.AddComponent<DespawnBehavior>();
 			var despawnBehavior = supplyDrop.gameObject.GetComponent<DespawnBehavior>();
 
 			despawnBehavior.TimeoutInSeconds = timeoutInSeconds;
-			despawnBehavior.NotifyOnDespawn = settings.NotifyOnDespawn;
-			despawnBehavior.NotifyOnDespawnMessage = settings.NotifyOnDespawnMessage;
+			despawnBehavior.NotifyOnDespawn = settings.CommonSettings.NotifyOnDespawn;
+			despawnBehavior.NotifyOnDespawnMessage = settings.Localization.NotifyOnDespawnMessage;
 		}
 	}
 
@@ -479,14 +500,14 @@ namespace AirdropExtended.Behaviors
 			{
 				var despawnBehavior = supplyDrop.GetComponent<DespawnBehavior>();
 				if (Equals(despawnBehavior, null))
-					DespawnBehavior.AddTo(supplyDrop, settings.CommonSettings);
+					DespawnBehavior.AddTo(supplyDrop, settings);
 
 				despawnBehavior = supplyDrop.GetComponent<DespawnBehavior>();
 				var hasParachute = HasParachute(supplyDrop);
 
 				var collisionBehavior = supplyDrop.GetComponent<SupplyDropLandedBehavior>();
 				if (hasParachute && Equals(collisionBehavior, null))
-					SupplyDropLandedBehavior.AddTo(supplyDrop, settings.CommonSettings);
+					SupplyDropLandedBehavior.AddTo(supplyDrop, settings);
 
 				if (hasParachute)
 					continue;
@@ -599,13 +620,15 @@ namespace AirdropExtended.Commands
 	{
 		public string Name { get; private set; }
 		public string PermissionName { get; private set; }
+		public bool IsChatOnly { get; private set; }
 
-		protected AirdropExtendedCommand(string name, string permissionName = "")
+		protected AirdropExtendedCommand(string name, string permissionName = "", bool chatOnly = false)
 		{
 			if (string.IsNullOrEmpty(name)) throw new ArgumentNullException("name");
 
 			Name = name;
 			PermissionName = permissionName;
+			IsChatOnly = chatOnly;
 		}
 
 		public virtual void ExecuteFromChat(BasePlayer player, string command, string[] args)
@@ -1350,6 +1373,137 @@ namespace AirdropExtended.Commands
 		}
 	}
 
+	public class CallRandomDropCommand : AirdropExtendedCommand
+	{
+		private readonly SettingsContext _context;
+
+		public CallRandomDropCommand(SettingsContext context)
+			: base("aire.drop", "aire.canDrop")
+		{
+			if (context == null) throw new ArgumentNullException("context");
+			_context = context;
+		}
+
+		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		{
+			Diagnostics.Diagnostics.MessageToServerAndPlayer(player, "Calling random drop");
+			AirdropService.CallRandomDrop(_context.Settings.DropLocation);
+		}
+
+		protected override string GetUsageString()
+		{
+			return GetDefaultUsageString();
+		}
+	}
+
+	public class CallToPosCommand : AirdropExtendedCommand
+	{
+		private static readonly string[] UsageStrings = { "aire.topos x y z", "aire.topos x;y;z", "aire.topos x,y,z" };
+		private static readonly char[] Separators = { ';', ',' };
+
+		public CallToPosCommand()
+			: base("aire.topos", "aire.canDropToPos")
+		{ }
+
+		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		{
+			if (!arg.HasArgs())
+			{
+				PrintUsage(player);
+				return;
+			}
+
+			int x, y, z;
+			if (!arg.HasArgs(3))
+			{
+				var argz = arg.GetString(0);
+				var coordinates = argz.Split(Separators);
+				if (coordinates.Length < 3)
+				{
+					PrintUsage(player);
+					return;
+				}
+
+				x = int.Parse(coordinates[0]);
+				y = int.Parse(coordinates[1]);
+				z = int.Parse(coordinates[2]);
+			}
+			else
+			{
+				x = arg.GetInt(0);
+				y = arg.GetInt(1);
+				z = arg.GetInt(2);
+			}
+
+			AirdropService.CallToPos(new Vector3(x, y, z));
+		}
+
+		protected override string GetUsageString()
+		{
+			return string.Join(Environment.NewLine, UsageStrings);
+		}
+	}
+
+	public class CallToPlayerCommand : AirdropExtendedCommand
+	{
+		private static readonly string[] UsageStrings = { "aire.toplayer steamId", "aire.toplayer nickname" };
+
+		public CallToPlayerCommand()
+			: base("aire.toplayer", "aire.canDropToPlayer")
+		{ }
+
+		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		{
+			if (!arg.HasArgs())
+			{
+				PrintUsage(player);
+				return;
+			}
+
+			ulong steamId;
+			var parameter = arg.GetString(0);
+			var activePlayerList = BasePlayer.activePlayerList;
+
+			var playerToDropTo = ulong.TryParse(parameter, out steamId) 
+				? activePlayerList.FirstOrDefault(p => p.userID.Equals(steamId)) 
+				: activePlayerList.FirstOrDefault(p => p.displayName.Equals(parameter, StringComparison.OrdinalIgnoreCase));
+
+			if (playerToDropTo == null)
+			{
+				Diagnostics.Diagnostics.MessageToServerAndPlayer(player, "Player to drop to was not found!");
+				return;
+			}
+			Diagnostics.Diagnostics.MessageToServerAndPlayer(player, "Dropping to player:{0}!", playerToDropTo.displayName);
+			AirdropService.CallToPos(playerToDropTo.transform.position);
+		}
+
+		protected override string GetUsageString()
+		{
+			return string.Join(Environment.NewLine, UsageStrings);
+		}
+	}
+
+	public class CallToMeCommand : AirdropExtendedCommand
+	{
+		public CallToMeCommand()
+			: base("aire.tome", "aire.canDropToMe", true)
+		{ }
+
+		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		{
+			if (player == null)
+				return;
+
+			Diagnostics.Diagnostics.MessageToServerAndPlayer(player, "Dropping to player:{0}!", player.displayName);
+			AirdropService.CallToPos(player.transform.position);
+		}
+
+		protected override string GetUsageString()
+		{
+			return GetDefaultUsageString();
+		}
+	}
+
 	public static class CommandFactory
 	{
 		public static List<AirdropExtendedCommand> Create(
@@ -1379,7 +1533,11 @@ namespace AirdropExtended.Commands
 					new SetPlaneSpeedCommand(context, controller),
 					new SetItemSettingsCommand(context, controller),
 					new SetItemGroupSettingsCommand(context, controller),
-					new SetAirdropCapacityCommand(context, controller)
+					new SetAirdropCapacityCommand(context, controller),
+					new CallRandomDropCommand(context),
+					new CallToPosCommand(),
+					new CallToPlayerCommand(),
+					new CallToMeCommand()
 				};
 		}
 	}
@@ -1472,6 +1630,23 @@ namespace AirdropExtended.WeightedSearch
 
 namespace AirdropExtended.Airdrop.Services
 {
+	internal static class AirdropService
+	{
+		public static void CallRandomDrop(DropLocationSettings locationSettings)
+		{
+			if (locationSettings == null) throw new ArgumentNullException("locationSettings");
+
+			var plane = CargoPlaneFactory.CreatePlane(locationSettings.GetRandomPosition());
+			plane.Spawn();
+		}
+
+		public static void CallToPos(Vector3 position)
+		{
+			var plane = CargoPlaneFactory.CreatePlane(position);
+			plane.Spawn();
+		}
+	}
+
 	internal sealed class CargoPlaneData
 	{
 		private readonly Vector3 _targetPos;
@@ -1509,6 +1684,18 @@ namespace AirdropExtended.Airdrop.Services
 				new Vector3(),
 				new Quaternion());
 
+			CargoPlaneFields.SecondsToTakeField.SetValue(plane, 5);
+			return plane;
+		}
+
+		public static CargoPlane CreatePlane(Vector3 position)
+		{
+			var plane = (CargoPlane)GameManager.server.CreateEntity(
+				"assets/bundled/prefabs/events/cargo_plane.prefab",
+				new Vector3(),
+				new Quaternion());
+
+			plane.InitDropPosition(position);
 			CargoPlaneFields.SecondsToTakeField.SetValue(plane, 5);
 			return plane;
 		}
@@ -1582,7 +1769,7 @@ namespace AirdropExtended.Airdrop.Services
 			else
 			{
 				Diagnostics.Diagnostics.MessageTo(
-					_settings.CommonSettings.NotifyOnPlaneRemovedMessage,
+					_settings.Localization.NotifyOnPlaneRemovedMessage,
 					_settings.CommonSettings.NotifyOnPlaneRemoved,
 					playerCount);
 			}
@@ -1775,8 +1962,10 @@ namespace AirdropExtended.Airdrop.Services
 
 		private void OnPlaneLaunched(object sender, CargoPlaneLaunchedEventArgs cargoPlaneLaunchedEventArgs)
 		{
-			Diagnostics.Diagnostics.MessageTo(_context.Settings.CommonSettings.NotifyOnPlaneSpawnedMessage, _context.Settings.CommonSettings.NotifyOnPlaneSpawned);
 			var plane = cargoPlaneLaunchedEventArgs.Plane;
+			var position = (Vector3)CargoPlaneFields.DropPositionField.GetValue(plane);
+
+			Diagnostics.Diagnostics.MessageTo(_context.Settings.Localization.NotifyOnPlaneSpawnedMessage, _context.Settings.CommonSettings.NotifyOnPlaneSpawned, position.x, position.y, position.z);
 
 			CargoPlaneFields.SecondsToTakeField.SetValue(plane, _context.Settings.CommonSettings.PlaneSpeedInSeconds);
 		}
@@ -1820,10 +2009,10 @@ namespace AirdropExtended.Airdrop.Services
 			var y = entity.transform.position.y;
 			var z = entity.transform.position.z;
 
-			Diagnostics.Diagnostics.MessageTo(_context.Settings.CommonSettings.NotifyOnDropStartedMessage, _context.Settings.CommonSettings.NotifyOnDropStarted, entity.net.ID, x, y, z);
+			Diagnostics.Diagnostics.MessageTo(_context.Settings.Localization.NotifyOnDropStartedMessage, _context.Settings.CommonSettings.NotifyOnDropStarted, entity.net.ID, x, y, z);
 
-			SupplyDropLandedBehavior.AddTo(supplyDrop, _context.Settings.CommonSettings);
-			DespawnBehavior.AddTo(entity, _context.Settings.CommonSettings);
+			SupplyDropLandedBehavior.AddTo(supplyDrop, _context.Settings);
+			DespawnBehavior.AddTo(entity, _context.Settings);
 		}
 
 		private void FillAirdropContainer(ItemContainer itemContainer)
@@ -1868,7 +2057,7 @@ namespace AirdropExtended.Airdrop.Services
 			signalItem.MoveToContainer(containerToAddItemTo, -1, false);
 
 			if (_context.Settings.CommonSettings.NotifyOnSupplySingalDisabled)
-				Diagnostics.Diagnostics.MessageToPlayer(player, _context.Settings.CommonSettings.NotifyOnSupplySingalDisabledMessage);
+				Diagnostics.Diagnostics.MessageToPlayer(player, _context.Settings.Localization.NotifyOnSupplySingalDisabledMessage);
 		}
 	}
 }
@@ -1891,6 +2080,8 @@ namespace AirdropExtended.Airdrop.Settings
 		{
 			Capacity = MaxCapacity;
 			PickStrategy = PickStrategy.Capacity;
+			DropLocation = DropLocationSettings.CreateDefault();
+			Localization = new LocalizationSettings();
 		}
 
 		public int Capacity
@@ -1907,6 +2098,10 @@ namespace AirdropExtended.Airdrop.Settings
 		public PickStrategy PickStrategy { get; set; }
 
 		public CommonSettings CommonSettings { get; set; }
+
+		public LocalizationSettings Localization { get; set; }
+
+		public DropLocationSettings DropLocation { get; set; }
 
 		public List<AirdropItemGroup> ItemGroups { get; set; }
 
@@ -2109,16 +2304,6 @@ namespace AirdropExtended.Airdrop.Settings
 		public const int DefaultMaximumNumberOfPlanesInTheAir = 10;
 		public const int DefaultDropNotifyMaxDistance = 300;
 
-		public const string DefaultNotifyOnPlaneSpawnedMessage = "Cargo Plane has been spawned.";
-		public const string DefaultNotifyOnPlaneRemovedMessage = "Cargo Plane has been removed, due to insufficient player count: {0}.";
-		public const string DefaultNotifyOnDropStartedMessage = "Supply Drop {0} has been spawned at {1},{2},{3}.";
-		public const string DefaultNotifyOnPlayerLootingStartedMessage = "Player {0} started looting the Supply Drop {1}.";
-		private const string DefaultNotifyOnCollisionMessage = "Supply drop {0} has landed at {1},{2},{3}";
-		private const string DefaultNotifyOnDespawnMessage = "Supply drop {0} has been despawned at {1},{2},{3}";
-		private const string DefaultNotifyOnSupplySingalDisabledMessage = "Supply signals are disabled by server. An item has been added to your invertory/belt.";
-		private const string DefaultNotifyAboutPlayersAroundOnDropLandMessage = "There are {0} players near drop, including you!";
-		private const string DefaultNotifyAboutDirectionAroundOnDropLandMessage = "Airdrop is {0:F0} meters away from you! Direction: {1}";
-
 		private int _maximumNumberOfPlanesInTheAir;
 
 		public Boolean SupplySignalsEnabled { get; set; }
@@ -2132,25 +2317,17 @@ namespace AirdropExtended.Airdrop.Settings
 		public TimeSpan SupplyCrateDespawnTime { get; set; }
 
 		public Boolean NotifyOnPlaneSpawned { get; set; }
-		public string NotifyOnPlaneSpawnedMessage { get; set; }
-
 		public Boolean NotifyOnPlaneRemoved { get; set; }
-		public string NotifyOnPlaneRemovedMessage { get; set; }
-
 		public Boolean NotifyOnDropStarted { get; set; }
-		public string NotifyOnDropStartedMessage { get; set; }
-
 		public Boolean NotifyOnPlayerLootingStarted { get; set; }
-		public string NotifyOnPlayerLootingStartedMessage { get; set; }
+		public Boolean NotifyOnCollision { get; set; }
+		public Boolean NotifyOnSupplySingalDisabled { get; set; }
+		public Boolean NotifyOnDespawn { get; set; }
+		public Boolean MaximumPlaneLimitEnabled { get; set; }
+		public Boolean NotifyAboutPlayersAroundOnDropLand { get; set; }
+		public Boolean NotifyAboutDirectionAroundOnDropLand { get; set; }
 
-		public string NotifyOnCollisionMessage { get; set; }
-		public bool NotifyOnCollision { get; set; }
-
-		public string NotifyOnSupplySingalDisabledMessage { get; set; }
-		public bool NotifyOnSupplySingalDisabled { get; set; }
-
-		public string NotifyOnDespawnMessage { get; set; }
-		public bool NotifyOnDespawn { get; set; }
+		public int PlaneSpeedInSeconds { get; set; }
 
 		public int MaximumNumberOfPlanesInTheAir
 		{
@@ -2163,48 +2340,20 @@ namespace AirdropExtended.Airdrop.Settings
 			}
 		}
 
-		public bool MaximumPlaneLimitEnabled { get; set; }
-		public int PlaneSpeedInSeconds { get; set; }
-
-		public bool NotifyAboutPlayersAroundOnDropLand { get; set; }
-		public string NotifyAboutPlayersAroundOnDropLandMessage { get; set; }
-
-		public bool NotifyAboutDirectionAroundOnDropLand { get; set; }
-		public string NotifyAboutDirectionAroundOnDropLandMessage { get; set; }
-
 		public int DropNotifyMaxDistance { get; set; }
 
 		public CommonSettings()
 		{
 			NotifyOnPlaneSpawned = false;
-			NotifyOnPlaneSpawnedMessage = DefaultNotifyOnPlaneSpawnedMessage;
-
 			NotifyOnPlaneRemoved = false;
-			NotifyOnPlaneRemovedMessage = DefaultNotifyOnPlaneRemovedMessage;
-
 			NotifyOnDropStarted = false;
-			NotifyOnDropStartedMessage = DefaultNotifyOnDropStartedMessage;
-
 			NotifyOnPlayerLootingStarted = false;
-			NotifyOnPlayerLootingStartedMessage = DefaultNotifyOnPlayerLootingStartedMessage;
-
-			NotifyOnCollisionMessage = DefaultNotifyOnCollisionMessage;
 			NotifyOnCollision = false;
-
-			NotifyOnDespawnMessage = DefaultNotifyOnDespawnMessage;
 			NotifyOnDespawn = false;
-
 			NotifyOnSupplySingalDisabled = true;
-			NotifyOnSupplySingalDisabledMessage = DefaultNotifyOnSupplySingalDisabledMessage;
-
 			DropNotifyMaxDistance = DefaultDropNotifyMaxDistance;
-
-			NotifyAboutDirectionAroundOnDropLandMessage = DefaultNotifyAboutDirectionAroundOnDropLandMessage;
 			NotifyAboutDirectionAroundOnDropLand = false;
-
-			NotifyAboutPlayersAroundOnDropLandMessage = DefaultNotifyAboutPlayersAroundOnDropLandMessage;
 			NotifyAboutPlayersAroundOnDropLand = false;
-
 			SupplySignalsEnabled = true;
 			BuiltInAirdropEnabled = false;
 			PluginAirdropTimerEnabled = true;
@@ -2225,32 +2374,14 @@ namespace AirdropExtended.Airdrop.Settings
 				MaximumPlaneLimitEnabled = false,
 
 				NotifyOnPlaneSpawned = false,
-				NotifyOnPlaneSpawnedMessage = DefaultNotifyOnPlaneSpawnedMessage,
-
 				NotifyOnPlaneRemoved = false,
-				NotifyOnPlaneRemovedMessage = DefaultNotifyOnPlaneRemovedMessage,
-
 				NotifyOnDropStarted = false,
-				NotifyOnDropStartedMessage = DefaultNotifyOnDropStartedMessage,
-
 				NotifyOnPlayerLootingStarted = false,
-				NotifyOnPlayerLootingStartedMessage = DefaultNotifyOnPlayerLootingStartedMessage,
-
 				NotifyOnCollision = false,
-				NotifyOnCollisionMessage = DefaultNotifyOnCollisionMessage,
-
 				NotifyOnDespawn = false,
-				NotifyOnDespawnMessage = DefaultNotifyOnDespawnMessage,
-
 				NotifyOnSupplySingalDisabled = true,
-				NotifyOnSupplySingalDisabledMessage = DefaultNotifyOnSupplySingalDisabledMessage,
-
 				DropNotifyMaxDistance = DefaultDropNotifyMaxDistance,
-
-				NotifyAboutDirectionAroundOnDropLandMessage = DefaultNotifyAboutDirectionAroundOnDropLandMessage,
 				NotifyAboutDirectionAroundOnDropLand = false,
-
-				NotifyAboutPlayersAroundOnDropLandMessage = DefaultNotifyAboutPlayersAroundOnDropLandMessage,
 				NotifyAboutPlayersAroundOnDropLand = false,
 
 				SupplySignalsEnabled = true,
@@ -2258,6 +2389,115 @@ namespace AirdropExtended.Airdrop.Settings
 				PluginAirdropTimerEnabled = true,
 				PlaneSpeedInSeconds = 300
 			};
+		}
+	}
+
+	public sealed class DropLocationSettings
+	{
+		public int MinX { get; set; }
+		public int MaxX { get; set; }
+
+		public int MinY { get; set; }
+		public int MaxY { get; set; }
+
+		public int MinZ { get; set; }
+		public int MaxZ { get; set; }
+
+		public static DropLocationSettings CreateDefault()
+		{
+			var halfOfWorldSize = Convert.ToInt32(World.Size / 2);
+			return new DropLocationSettings
+			{
+				MinX = -halfOfWorldSize - 500,
+				MaxX = halfOfWorldSize + 500,
+				MinZ = -halfOfWorldSize - 500,
+				MaxZ = halfOfWorldSize + 500,
+				MinY = 200,
+				MaxY = 300
+			};
+		}
+
+		public Vector3 GetRandomPosition()
+		{
+			var x = Oxide.Core.Random.Range(MinX, MaxX + 1) + 1;
+			var y = Oxide.Core.Random.Range(MinY, MaxY + 1);
+			var z = Oxide.Core.Random.Range(MinZ, MaxZ + 1) + 1;
+
+			return new Vector3(x, y, z);
+		}
+	}
+
+	public sealed class LocalizationSettings
+	{
+		public const string DefaultNotifyOnPlaneSpawnedMessage = "Cargo Plane has been spawned, dropping at: {0},{1},{2}.";
+		public const string DefaultNotifyOnPlaneRemovedMessage = "Cargo Plane has been removed, due to insufficient player count: {0}.";
+		public const string DefaultNotifyOnDropStartedMessage = "Supply Drop {0} has been spawned at {1},{2},{3}.";
+		public const string DefaultNotifyOnPlayerLootingStartedMessage = "Player {0} started looting the Supply Drop {1}.";
+		private const string DefaultNotifyOnCollisionMessage = "Supply drop {0} has landed at {1},{2},{3}";
+		private const string DefaultNotifyOnDespawnMessage = "Supply drop {0} has been despawned at {1},{2},{3}";
+		private const string DefaultNotifyOnSupplySingalDisabledMessage = "Supply signals are disabled by server. An item has been added to your invertory/belt.";
+		private const string DefaultNotifyAboutPlayersAroundOnDropLandMessage = "There are {0} players near drop, including you!";
+		private const string DefaultNotifyAboutDirectionAroundOnDropLandMessage = "Airdrop is {0:F0} meters away from you! Direction: {1}";
+
+		public string NotifyOnPlaneSpawnedMessage { get; set; }
+		public string NotifyOnPlaneRemovedMessage { get; set; }
+		public string NotifyOnDropStartedMessage { get; set; }
+		public string NotifyOnPlayerLootingStartedMessage { get; set; }
+		public string NotifyOnCollisionMessage { get; set; }
+		public string NotifyOnSupplySingalDisabledMessage { get; set; }
+		public string NotifyOnDespawnMessage { get; set; }
+		public string NotifyAboutPlayersAroundOnDropLandMessage { get; set; }
+		public string NotifyAboutDirectionAroundOnDropLandMessage { get; set; }
+
+		public DirectionLocalizationSettings Directions { get; set; }
+
+		public LocalizationSettings()
+		{
+			NotifyOnPlaneSpawnedMessage = DefaultNotifyOnPlaneSpawnedMessage;
+			NotifyOnPlaneRemovedMessage = DefaultNotifyOnPlaneRemovedMessage;
+			NotifyOnDropStartedMessage = DefaultNotifyOnDropStartedMessage;
+			NotifyOnPlayerLootingStartedMessage = DefaultNotifyOnPlayerLootingStartedMessage;
+			NotifyOnCollisionMessage = DefaultNotifyOnCollisionMessage;
+			NotifyOnDespawnMessage = DefaultNotifyOnDespawnMessage;
+			NotifyOnSupplySingalDisabledMessage = DefaultNotifyOnSupplySingalDisabledMessage;
+			NotifyAboutDirectionAroundOnDropLandMessage = DefaultNotifyAboutDirectionAroundOnDropLandMessage;
+			NotifyAboutPlayersAroundOnDropLandMessage = DefaultNotifyAboutPlayersAroundOnDropLandMessage;
+
+			Directions = new DirectionLocalizationSettings();
+		}
+
+		public static LocalizationSettings CreateDefault()
+		{
+			return new LocalizationSettings();
+		}
+	}
+
+	public sealed class DirectionLocalizationSettings
+	{
+		public string North { get; set; }
+		public string NorthEast { get; set; }
+		public string NorthWest { get; set; }
+		public string East { get; set; }
+		public string West { get; set; }
+		public string South { get; set; }
+		public string SouthWest { get; set; }
+		public string SouthEast { get; set; }
+
+		public DirectionLocalizationSettings()
+		{
+			North = "North";
+			NorthEast = "NorthEast";
+			NorthWest = "NorthWest";
+			East = "East";
+			West = "West";
+			South = "South";
+			SouthWest = "SouthWest";
+			SouthEast = "SouthEast";
+		}
+
+		public static DropLocationSettings CreateDefault()
+		{
+			return new DropLocationSettings();
 		}
 	}
 
