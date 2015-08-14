@@ -569,7 +569,7 @@ namespace AirdropExtended.Diagnostics
 
 		public static void MessageToPlayer(BasePlayer player, string message, params object[] args)
 		{
-			
+
 			player.SendConsoleCommand("chat.add", new object[] { 0, string.Format(Format, Color, Prefix) + string.Format(message, args), 1f });
 		}
 
@@ -2093,13 +2093,13 @@ namespace AirdropExtended.Airdrop.Services
 				if (commonSettings.NotifyAboutDirectionAroundOnSupplyThrown && player.userID != otherPlayer.userID)
 					Diagnostics.Diagnostics.MessageToPlayer(
 						otherPlayer,
-						airdropSettings.Localization.NotifyAboutDirectionAroundOnSupplyThrownMessage, 
+						airdropSettings.Localization.NotifyAboutDirectionAroundOnSupplyThrownMessage,
 						distance,
 						compassDirection);
 
 				if (commonSettings.NotifyAboutPlayersAroundOnSupplyThrown)
 					Diagnostics.Diagnostics.MessageToPlayer(
-						otherPlayer, 
+						otherPlayer,
 						airdropSettings.Localization.NotifyAboutPlayersAroundOnSupplyThrownMessage,
 						nearbyPlayers);
 			}
@@ -2358,6 +2358,8 @@ namespace AirdropExtended.Airdrop.Settings
 		public const int DefaultSupplySignalNotifyMaxDistance = 300;
 
 		private int _maximumNumberOfPlanesInTheAir;
+		private int _minCrates = 1;
+		private int _maxCrates = 1;
 
 		public Boolean SupplySignalsEnabled { get; set; }
 		public Boolean BuiltInAirdropEnabled { get; set; }
@@ -2368,6 +2370,18 @@ namespace AirdropExtended.Airdrop.Settings
 
 		public int MinimumPlayerCount { get; set; }
 		public TimeSpan SupplyCrateDespawnTime { get; set; }
+
+		public int MinCrates
+		{
+			get { return _minCrates; }
+			set { _minCrates = value < 1 ? 1 : value; }
+		}
+
+		public int MaxCrates
+		{
+			get { return _maxCrates; }
+			set { _maxCrates = value < 1 ? 1 : value; }
+		}
 
 		public Boolean NotifyOnPlaneSpawned { get; set; }
 		public Boolean NotifyOnPlaneRemoved { get; set; }
@@ -2596,6 +2610,7 @@ namespace AirdropExtended.Airdrop.Settings
 				AdjustGroupMaxAmount(settings.ItemGroups, diff);
 
 			ValidateFrequency(settings);
+			ValidateCrates(settings);
 		}
 
 		private static void AdjustGroupMaxAmount(List<AirdropItemGroup> value, int diff)
@@ -2629,6 +2644,12 @@ namespace AirdropExtended.Airdrop.Settings
 				settings.CommonSettings.MaxDropFrequency = settings.CommonSettings.MinDropFrequency;
 				Diagnostics.Diagnostics.MessageToServer("adjusting maxfreq to :{0}", settings.CommonSettings.MaxDropFrequency.TotalSeconds);
 			}
+		}
+
+		private static void ValidateCrates(AirdropSettings settings)
+		{
+			if (settings.CommonSettings.MinCrates > settings.CommonSettings.MaxCrates)
+				settings.CommonSettings.MaxCrates = settings.CommonSettings.MinCrates;
 		}
 	}
 
