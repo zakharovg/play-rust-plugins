@@ -112,6 +112,7 @@
     <Compile Include="EconomicsVip.cs" />
     <Compile Include="PrintItemNames.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ZoneWarfare.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="EconomicsVip.lua" />
@@ -119,7 +120,7 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>xcopy /Y $(ProjectDir)AirdropExtended.cs H:\steam\rust_server_copy\server\my_server_identity\oxide\plugins
-xcopy /Y $(ProjectDir)EconomicsVip.lua H:\steam\rust_server_copy\server\my_server_identity\oxide\plugins</PostBuildEvent>
+xcopy /Y $(ProjectDir)ZoneWarfare.cs H:\steam\rust_server_copy\server\my_server_identity\oxide\plugins</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
