@@ -30,7 +30,7 @@ using Timer = Oxide.Core.Libraries.Timer;
 
 namespace Oxide.Plugins
 {
-	[Info(Constants.PluginName, "baton", "0.7.6", ResourceId = 1210)]
+	[Info(Constants.PluginName, "baton", "0.7.7", ResourceId = 1210)]
 	[Description("Customizable airdrop")]
 	public class AirdropExtended : RustPlugin
 	{
@@ -558,6 +558,7 @@ namespace AirdropExtended.Diagnostics
 	{
 		public static string Prefix = "aire:";
 		public static string Color = "orange";
+		private const string Format = "<color={0}>{1}</color>";
 
 		public static void MessageTo(string message, bool sendToAll, params object[] args)
 		{
@@ -568,13 +569,14 @@ namespace AirdropExtended.Diagnostics
 
 		public static void MessageToPlayer(BasePlayer player, string message, params object[] args)
 		{
-			const string format = "<color={0}>{1}</color>";
-			player.SendConsoleCommand("chat.add", new object[] { 0, string.Format(format, Color, Prefix) + string.Format(message, args), 1f });
+			
+			player.SendConsoleCommand("chat.add", new object[] { 0, string.Format(Format, Color, Prefix) + string.Format(message, args), 1f });
 		}
 
 		public static void MessageToAll(string message, params object[] args)
 		{
-			ConsoleSystem.Broadcast("chat.add \"SERVER\" " + string.Format(message, args).QuoteSafe() + " 1.0", new object[0]);
+			var msg = string.Format(Format, Color, Prefix) + string.Format(message, args);
+			ConsoleSystem.Broadcast("chat.add \"SERVER\" " + msg.QuoteSafe() + " 1.0", new object[0]);
 		}
 
 		public static void MessageToServer(string message, params object[] args)
