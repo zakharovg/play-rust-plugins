@@ -30,7 +30,7 @@ using Timer = Oxide.Core.Libraries.Timer;
 
 namespace Oxide.Plugins
 {
-	[Info(Constants.PluginName, "baton", "0.8.0", ResourceId = 1210)]
+	[Info(Constants.PluginName, "baton", "0.8.1", ResourceId = 1210)]
 	[Description("Customizable airdrop")]
 	public class AirdropExtended : RustPlugin
 	{
@@ -555,10 +555,10 @@ namespace AirdropExtended.Behaviors
 	{
 		public int TotalCratesToDrop { get; set; }
 		public Vector3 InitialEndPosition { get; set; }
-
 		public bool DropToOneLocation { get; set; }
-
 		public int DroppedCrates { get; set; }
+
+		private Vector3 IntersectionPoint { get; set; }
 
 		public void OnPlaneDroppedCrate(CargoPlane plane, AirdropSettings settings, Vector3 position)
 		{
@@ -569,6 +569,9 @@ namespace AirdropExtended.Behaviors
 				plane.SetPlaneEndPosition(position, InitialEndPosition, planeSpeedInSeconds);
 				return;
 			}
+
+			if (IntersectionPoint == Vector3.zero)
+				IntersectionPoint = GetIntersectionPoint(settings.DropLocation, position, InitialEndPosition);
 
 			CargoPlaneFields.DroppedField.SetValue(plane, false);
 
@@ -583,43 +586,56 @@ namespace AirdropExtended.Behaviors
 			else
 			{
 				var cratesToDrop = (TotalCratesToDrop - DroppedCrates);
-				var distanceToNextEndPos = Vector3.Distance(position, InitialEndPosition) / cratesToDrop;
+				var distanceToNextEndPos = Vector3.Distance(position, IntersectionPoint) / cratesToDrop;
 				var distanceToNextDrop = distanceToNextEndPos / 2;
-				currentEndPos = Vector3.MoveTowards(position, InitialEndPosition, distanceToNextEndPos);
-				nextDropPosition = Vector3.MoveTowards(position, InitialEndPosition, distanceToNextDrop);
+				currentEndPos = Vector3.MoveTowards(position, IntersectionPoint, distanceToNextEndPos);
+				nextDropPosition = Vector3.MoveTowards(position, IntersectionPoint, distanceToNextDrop);
 			}
 			plane.NotifyNextDropPosition(nextDropPosition, settings);
 			CargoPlaneFields.DropPositionField.SetValue(plane, nextDropPosition);
 			plane.SetPlaneEndPosition(position, currentEndPos, planeSpeedInSeconds);
 		}
 
-		//TODO: fix!
-		private Vector3 GetIntersectionPoint(DropLocationSettings settings, Vector3 position, Vector3 endpos)
+		public Vector3 GetIntersectionPoint(DropLocationSettings settings, Vector3 position, Vector3 endpos)
 		{
-			var x = endpos.x;
-			var z = endpos.z;
-			var planeWidth = settings.PlaneWidth;
-			var planeHeight = settings.PlaneHeight;
-			var k = (planeHeight - z) / (planeWidth - x);
-
-			float intersectionX, intersectionZ;
-			if (Math.Abs(k) >= 1)
+			var lines = new List<Vector2[]>
 			{
-				intersectionZ = k * planeHeight;
-				intersectionX = planeWidth;
-			}
-			else
+				new[] {new Vector2(settings.MinX, settings.MinZ), new Vector2(settings.MinX, settings.MaxZ)},
+				new[] {new Vector2(settings.MinX, settings.MaxZ), new Vector2(settings.MaxX, settings.MaxZ)},
+				new[] {new Vector2(settings.MaxX, settings.MaxZ), new Vector2(settings.MaxX, settings.MinZ)},
+				new[] {new Vector2(settings.MaxX, settings.MinZ), new Vector2(settings.MinX, settings.MinZ)},
+			};
+
+			var lineStart = new Vector2(position.x, position.z);
+			var lineEnd = new Vector2(endpos.x, endpos.z);
+
+			foreach (var line in lines)
 			{
-				intersectionZ = planeHeight;
-				intersectionX = k * planeWidth;
+				var intersectionPoint = LineIntersectionPoint(line[0], line[1], lineStart, lineEnd);
+				if (intersectionPoint != Vector2.zero)
+					return new Vector3(intersectionPoint.x, position.y, intersectionPoint.y);
 			}
 
-			if (z < 0.0f)
-				intersectionZ *= -1;
-			if (x < 0.0f)
-				intersectionX *= -1;
+			return Vector3.zero;
+		}
 
-			return new Vector3(intersectionX, position.y, intersectionZ);
+		private Vector2 LineIntersectionPoint(Vector2 lineOneStart, Vector2 lineOneEnd1, Vector2 lineTwoStart, Vector2 lineTwoEnd)
+		{
+			var d = (lineOneStart.x - lineOneEnd1.x) * (lineTwoStart.y - lineTwoEnd.y) - (lineOneStart.y - lineOneEnd1.y) * (lineTwoStart.x - lineTwoEnd.x);
+			if (Math.Abs(d) < 0.01)
+				return Vector2.zero;
+
+			var xi = ((lineTwoStart.x - lineTwoEnd.x) * (lineOneStart.x * lineOneEnd1.y - lineOneStart.y * lineOneEnd1.x) - (lineOneStart.x - lineOneEnd1.x) * (lineTwoStart.x * lineTwoEnd.y - lineTwoStart.y * lineTwoEnd.x)) / d;
+			var yi = ((lineTwoStart.y - lineTwoEnd.y) * (lineOneStart.x * lineOneEnd1.y - lineOneStart.y * lineOneEnd1.x) - (lineOneStart.y - lineOneEnd1.y) * (lineTwoStart.x * lineTwoEnd.y - lineTwoStart.y * lineTwoEnd.x)) / d;
+
+			var p = new Vector2(xi, yi);
+			if (xi < Math.Min(lineOneStart.x, lineOneEnd1.x) || xi > Math.Max(lineOneStart.x, lineOneEnd1.x))
+				return Vector2.zero;
+
+			if (xi < Math.Min(lineTwoStart.x, lineTwoEnd.x) || xi > Math.Max(lineTwoStart.x, lineTwoEnd.x))
+				return Vector2.zero;
+
+			return p;
 		}
 	}
 
