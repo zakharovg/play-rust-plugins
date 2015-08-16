@@ -30,7 +30,7 @@ using Timer = Oxide.Core.Libraries.Timer;
 
 namespace Oxide.Plugins
 {
-	[Info(Constants.PluginName, "baton", "0.7.7", ResourceId = 1210)]
+	[Info(Constants.PluginName, "baton", "0.8.0", ResourceId = 1210)]
 	[Description("Customizable airdrop")]
 	public class AirdropExtended : RustPlugin
 	{
@@ -226,6 +226,18 @@ namespace Oxide.Plugins
 			_commands["aire.planespeed"].ExecuteFromChat(player, command, args);
 		}
 
+		[ChatCommand("aire.crates")]
+		private void SetCratesChatCommand(BasePlayer player, string command, string[] args)
+		{
+			_commands["aire.crates"].ExecuteFromChat(player, command, args);
+		}
+
+		[ChatCommand("aire.onelocation")]
+		private void SetDropToOneLocationChatCommand(BasePlayer player, string command, string[] args)
+		{
+			_commands["aire.onelocation"].ExecuteFromChat(player, command, args);
+		}
+
 		[ChatCommand("aire.drop")]
 		private void CallRandomDropChatCommand(BasePlayer player, string command, string[] args)
 		{
@@ -295,6 +307,51 @@ namespace AirdropExtended.Rust.Extensions
 			return string.Empty;
 		}
 	}
+
+	public static class CargoPlaneExtensions
+	{
+		public static void SetPlaneEndPosition(
+			this CargoPlane plane,
+			Vector3 startPosition,
+			Vector3 endPosition,
+			int planeSpeedInSeconds)
+		{
+			if (plane == null) throw new ArgumentNullException("plane");
+			CargoPlaneFields.StartPositionField.SetValue(plane, startPosition);
+			CargoPlaneFields.EndPositionField.SetValue(plane, endPosition);
+
+			plane.SetSpeed(startPosition, endPosition, planeSpeedInSeconds);
+		}
+
+		public static void SetSpeed(this CargoPlane plane, Vector3 startPosition, Vector3 endPosition, int planeSpeedInSeconds)
+		{
+			if (plane == null) throw new ArgumentNullException("plane");
+			var speed = Vector3.Distance(endPosition, startPosition) / planeSpeedInSeconds;
+			plane.transform.rotation = Quaternion.LookRotation(endPosition - startPosition);
+
+			CargoPlaneFields.SecondsTakenField.SetValue(plane, 0);
+			CargoPlaneFields.SecondsToTakeField.SetValue(plane, speed);
+		}
+
+		public static void SetSpeed(this CargoPlane plane, int planeSpeedInSeconds)
+		{
+			if (plane == null) throw new ArgumentNullException("plane");
+			var startPosition = (Vector3)CargoPlaneFields.StartPositionField.GetValue(plane);
+			var endPosition = (Vector3)CargoPlaneFields.EndPositionField.GetValue(plane);
+
+			plane.SetSpeed(startPosition, endPosition, planeSpeedInSeconds);
+		}
+
+		public static void NotifyNextDropPosition(this CargoPlane plane, Vector3 dropPos, AirdropSettings settings)
+		{
+			Diagnostics.Diagnostics.MessageTo(
+				settings.Localization.NotifyOnNextDropPositionMessage,
+				settings.CommonSettings.NotifyOnNextDropPosition,
+				dropPos.x,
+				dropPos.y,
+				dropPos.z);
+		}
+	}
 }
 
 namespace AirdropExtended.Behaviors
@@ -326,7 +383,7 @@ namespace AirdropExtended.Behaviors
 
 		void OnCollisionEnter(Collision col)
 		{
-			if (_isTriggered)
+			if (_isTriggered || col.gameObject.GetComponent<CargoPlane>() != null)
 				return;
 
 			_isTriggered = true;
@@ -343,7 +400,7 @@ namespace AirdropExtended.Behaviors
 			if (NotifyAboutDirectionAroundOnDropLand || NotifyAboutPlayersAroundOnDropLand)
 				NotifyPlayersAround(dropPosition, baseEntity);
 
-			var despawnBehavior = baseEntity.GetComponent<DespawnBehavior>();
+			var despawnBehavior = baseEntity.GetComponent<SupplyDropDespawnBehavior>();
 			if (despawnBehavior != null)
 				despawnBehavior.Despawn();
 		}
@@ -397,7 +454,7 @@ namespace AirdropExtended.Behaviors
 
 	}
 
-	public sealed class DespawnBehavior : MonoBehaviour
+	public sealed class SupplyDropDespawnBehavior : MonoBehaviour
 	{
 		private const string DefaultNotifyOnDespawnMessage = "Supply drop {0} has been despawned at {1},{2},{3}";
 		private const float DefaultSupplyStayTime = 300.0f;
@@ -411,7 +468,7 @@ namespace AirdropExtended.Behaviors
 		public string NotifyOnDespawnMessage { get; set; }
 		public bool NotifyOnDespawn { get; set; }
 
-		public DespawnBehavior()
+		public SupplyDropDespawnBehavior()
 		{
 			TimeoutInSeconds = DefaultSupplyStayTime;
 			NotifyOnDespawnMessage = DefaultNotifyOnDespawnMessage;
@@ -464,8 +521,8 @@ namespace AirdropExtended.Behaviors
 
 			var timeoutInSeconds = Convert.ToSingle(supplyCrateDespawnTime.TotalSeconds);
 
-			supplyDrop.gameObject.AddComponent<DespawnBehavior>();
-			var despawnBehavior = supplyDrop.gameObject.GetComponent<DespawnBehavior>();
+			supplyDrop.gameObject.AddComponent<SupplyDropDespawnBehavior>();
+			var despawnBehavior = supplyDrop.gameObject.GetComponent<SupplyDropDespawnBehavior>();
 
 			despawnBehavior.TimeoutInSeconds = timeoutInSeconds;
 			despawnBehavior.NotifyOnDespawn = settings.CommonSettings.NotifyOnDespawn;
@@ -494,6 +551,78 @@ namespace AirdropExtended.Behaviors
 		}
 	}
 
+	public sealed class MultipleCratesBehavior : MonoBehaviour
+	{
+		public int TotalCratesToDrop { get; set; }
+		public Vector3 InitialEndPosition { get; set; }
+
+		public bool DropToOneLocation { get; set; }
+
+		public int DroppedCrates { get; set; }
+
+		public void OnPlaneDroppedCrate(CargoPlane plane, AirdropSettings settings, Vector3 position)
+		{
+			DroppedCrates++;
+			var planeSpeedInSeconds = settings.CommonSettings.PlaneSpeedInSeconds;
+			if (DroppedCrates >= TotalCratesToDrop)
+			{
+				plane.SetPlaneEndPosition(position, InitialEndPosition, planeSpeedInSeconds);
+				return;
+			}
+
+			CargoPlaneFields.DroppedField.SetValue(plane, false);
+
+			Vector3 currentEndPos;
+			Vector3 nextDropPosition;
+			if (DropToOneLocation)
+			{
+				currentEndPos = Vector3.MoveTowards(position, InitialEndPosition, 50f);
+				nextDropPosition = Vector3.MoveTowards(position, InitialEndPosition,
+					25f);
+			}
+			else
+			{
+				var cratesToDrop = (TotalCratesToDrop - DroppedCrates);
+				var distanceToNextEndPos = Vector3.Distance(position, InitialEndPosition) / cratesToDrop;
+				var distanceToNextDrop = distanceToNextEndPos / 2;
+				currentEndPos = Vector3.MoveTowards(position, InitialEndPosition, distanceToNextEndPos);
+				nextDropPosition = Vector3.MoveTowards(position, InitialEndPosition, distanceToNextDrop);
+			}
+			plane.NotifyNextDropPosition(nextDropPosition, settings);
+			CargoPlaneFields.DropPositionField.SetValue(plane, nextDropPosition);
+			plane.SetPlaneEndPosition(position, currentEndPos, planeSpeedInSeconds);
+		}
+
+		//TODO: fix!
+		private Vector3 GetIntersectionPoint(DropLocationSettings settings, Vector3 position, Vector3 endpos)
+		{
+			var x = endpos.x;
+			var z = endpos.z;
+			var planeWidth = settings.PlaneWidth;
+			var planeHeight = settings.PlaneHeight;
+			var k = (planeHeight - z) / (planeWidth - x);
+
+			float intersectionX, intersectionZ;
+			if (Math.Abs(k) >= 1)
+			{
+				intersectionZ = k * planeHeight;
+				intersectionX = planeWidth;
+			}
+			else
+			{
+				intersectionZ = planeHeight;
+				intersectionX = k * planeWidth;
+			}
+
+			if (z < 0.0f)
+				intersectionZ *= -1;
+			if (x < 0.0f)
+				intersectionX *= -1;
+
+			return new Vector3(intersectionX, position.y, intersectionZ);
+		}
+	}
+
 	public static class SupplyDropBehaviorService
 	{
 		public static void AttachCustomBehaviorsToSupplyDrops(AirdropSettings settings)
@@ -505,11 +634,11 @@ namespace AirdropExtended.Behaviors
 
 			foreach (var supplyDrop in supplyDrops)
 			{
-				var despawnBehavior = supplyDrop.GetComponent<DespawnBehavior>();
+				var despawnBehavior = supplyDrop.GetComponent<SupplyDropDespawnBehavior>();
 				if (Equals(despawnBehavior, null))
-					DespawnBehavior.AddTo(supplyDrop, settings);
+					SupplyDropDespawnBehavior.AddTo(supplyDrop, settings);
 
-				despawnBehavior = supplyDrop.GetComponent<DespawnBehavior>();
+				despawnBehavior = supplyDrop.GetComponent<SupplyDropDespawnBehavior>();
 				var hasParachute = HasParachute(supplyDrop);
 
 				var collisionBehavior = supplyDrop.GetComponent<SupplyDropLandedBehavior>();
@@ -535,7 +664,7 @@ namespace AirdropExtended.Behaviors
 
 		public static void RemoveCustomBehaviorsFromSupplyDrops()
 		{
-			var despawnBehaviors = UnityEngine.Object.FindObjectsOfType<DespawnBehavior>();
+			var despawnBehaviors = UnityEngine.Object.FindObjectsOfType<SupplyDropDespawnBehavior>();
 			if (despawnBehaviors != null && despawnBehaviors.Any())
 			{
 				foreach (var despawnBehavior in despawnBehaviors)
@@ -1087,6 +1216,78 @@ namespace AirdropExtended.Commands
 		}
 	}
 
+	public class SetCrateCountCommand : AirdropExtendedCommand
+	{
+		private readonly SettingsContext _context;
+		private readonly AirdropController _controller;
+
+		public SetCrateCountCommand(SettingsContext context, AirdropController controller)
+			: base("aire.crates", "aire.canCrates")
+		{
+			if (context == null) throw new ArgumentNullException("context");
+			if (controller == null) throw new ArgumentNullException("controller");
+			_context = context;
+			_controller = controller;
+		}
+
+		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		{
+			if (!arg.HasArgs())
+			{
+				PrintUsage(player);
+				return;
+			}
+
+			var minCrates = arg.GetInt(0);
+			var maxCrates = arg.HasArgs(2) ? arg.GetInt(1) : minCrates;
+			_context.Settings.CommonSettings.MinCrates = minCrates;
+			_context.Settings.CommonSettings.MaxCrates = maxCrates;
+
+			Diagnostics.Diagnostics.MessageToServerAndPlayer(player, "Setting min/max crates to {0}-{1}", minCrates, maxCrates);
+			_controller.ApplySettings();
+		}
+
+		protected override string GetUsageString()
+		{
+			return GetDefaultUsageString("300");
+		}
+	}
+
+	public class SetDropToOneLocationCommand : AirdropExtendedCommand
+	{
+		private readonly SettingsContext _context;
+		private readonly AirdropController _controller;
+
+		public SetDropToOneLocationCommand(SettingsContext context, AirdropController controller)
+			: base("aire.onelocation", "aire.canOneLocation")
+		{
+			if (context == null) throw new ArgumentNullException("context");
+			if (controller == null) throw new ArgumentNullException("controller");
+			_context = context;
+			_controller = controller;
+		}
+
+		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		{
+			if (!arg.HasArgs())
+			{
+				PrintUsage(player);
+				return;
+			}
+
+			var oneLocation = arg.GetBool(0);
+			_context.Settings.CommonSettings.DropToOneLocation = oneLocation;
+
+			Diagnostics.Diagnostics.MessageToServerAndPlayer(player, "Setting drop to one location to {0}", oneLocation);
+			_controller.ApplySettings();
+		}
+
+		protected override string GetUsageString()
+		{
+			return GetDefaultUsageString("true");
+		}
+	}
+
 	public class SetPlaneLimitEnabledCommand : AirdropExtendedCommand
 	{
 		private readonly SettingsContext _context;
@@ -1540,6 +1741,8 @@ namespace AirdropExtended.Commands
 					new SetPlaneLimitCommand(context, controller),
 					new SetPlaneLimitEnabledCommand(context, controller),
 					new SetPlaneSpeedCommand(context, controller),
+					new SetCrateCountCommand(context, controller),
+					new SetDropToOneLocationCommand(context, controller),
 					new SetItemSettingsCommand(context, controller),
 					new SetItemGroupSettingsCommand(context, controller),
 					new SetAirdropCapacityCommand(context, controller),
@@ -1682,6 +1885,10 @@ namespace AirdropExtended.Airdrop.Services
 	{
 		public static readonly FieldInfo DropPositionField = typeof(CargoPlane).GetField("dropPosition", (BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance | BindingFlags.NonPublic));
 		public static readonly FieldInfo SecondsToTakeField = typeof(CargoPlane).GetField("secondsToTake", (BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance | BindingFlags.NonPublic));
+		public static readonly FieldInfo SecondsTakenField = typeof(CargoPlane).GetField("secondsTaken", (BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance | BindingFlags.NonPublic));
+		public static readonly FieldInfo DroppedField = typeof(CargoPlane).GetField("dropped", (BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance | BindingFlags.NonPublic));
+		public static readonly FieldInfo EndPositionField = typeof(CargoPlane).GetField("endPos", (BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance | BindingFlags.NonPublic));
+		public static readonly FieldInfo StartPositionField = typeof(CargoPlane).GetField("startPos", (BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance | BindingFlags.NonPublic));
 	}
 
 	internal sealed class CargoPlaneFactory
@@ -1694,7 +1901,6 @@ namespace AirdropExtended.Airdrop.Services
 				new Quaternion());
 
 			plane.InitDropPosition(position);
-			CargoPlaneFields.SecondsToTakeField.SetValue(plane, 5);
 			return plane;
 		}
 
@@ -1708,7 +1914,6 @@ namespace AirdropExtended.Airdrop.Services
 				return null;
 
 			CargoPlaneFields.DropPositionField.SetValue(plane, data.TargetPos);
-			CargoPlaneFields.SecondsToTakeField.SetValue(plane, 5);
 
 			return plane;
 		}
@@ -1816,7 +2021,8 @@ namespace AirdropExtended.Airdrop.Services
 				return;
 			}
 
-			var currentSettingValue = AdjustNumberOfPlanesInAir(settings);
+			var currentSettingValue = settings.MaximumNumberOfPlanesInTheAir;
+			AdjustNumberOfPlanesInAir(currentSettingValue);
 
 			_maximumNumberOfPlanesInTheAir = currentSettingValue;
 		}
@@ -1835,9 +2041,9 @@ namespace AirdropExtended.Airdrop.Services
 			_maximumNumberOfPlanesInTheAir = 0;
 		}
 
-		private int AdjustNumberOfPlanesInAir(CommonSettings settings)
+		private void AdjustNumberOfPlanesInAir(int currentSettingValue)
 		{
-			var currentSettingValue = settings.MaximumNumberOfPlanesInTheAir;
+
 			var currentPlanesInAir = UnityEngine.Object.FindObjectsOfType<CargoPlane>() ?? Enumerable.Empty<CargoPlane>().ToArray();
 
 			var numberOfAvailablePlanesToLaunch = currentSettingValue - currentPlanesInAir.Length;
@@ -1856,7 +2062,6 @@ namespace AirdropExtended.Airdrop.Services
 				if (cargoPlane.GetComponent<PlaneNotifyOnDestroyBehavior>() == null)
 					AddDestroyBehavior(cargoPlane);
 			}
-			return currentSettingValue;
 		}
 
 		public void Enqueue(CargoPlane plane)
@@ -1962,11 +2167,24 @@ namespace AirdropExtended.Airdrop.Services
 		private void OnPlaneLaunched(object sender, CargoPlaneLaunchedEventArgs cargoPlaneLaunchedEventArgs)
 		{
 			var plane = cargoPlaneLaunchedEventArgs.Plane;
+			AddMultipleCratesBehavior(plane);
+			plane.SetSpeed(_context.Settings.CommonSettings.PlaneSpeedInSeconds);
+			Diagnostics.Diagnostics.MessageTo(
+				_context.Settings.Localization.NotifyOnPlaneSpawnedMessage,
+				_context.Settings.CommonSettings.NotifyOnPlaneSpawned);
+
 			var position = (Vector3)CargoPlaneFields.DropPositionField.GetValue(plane);
+			plane.NotifyNextDropPosition(position, _context.Settings);
+		}
 
-			Diagnostics.Diagnostics.MessageTo(_context.Settings.Localization.NotifyOnPlaneSpawnedMessage, _context.Settings.CommonSettings.NotifyOnPlaneSpawned, position.x, position.y, position.z);
+		private void AddMultipleCratesBehavior(CargoPlane plane)
+		{
+			plane.gameObject.AddComponent<MultipleCratesBehavior>();
+			var cratesBehavior = plane.GetComponent<MultipleCratesBehavior>();
 
-			CargoPlaneFields.SecondsToTakeField.SetValue(plane, _context.Settings.CommonSettings.PlaneSpeedInSeconds);
+			cratesBehavior.TotalCratesToDrop = Oxide.Core.Random.Range(_context.Settings.CommonSettings.MinCrates, _context.Settings.CommonSettings.MaxCrates + 1);
+			cratesBehavior.DropToOneLocation = _context.Settings.CommonSettings.DropToOneLocation;
+			cratesBehavior.InitialEndPosition = (Vector3)CargoPlaneFields.EndPositionField.GetValue(plane);
 		}
 
 		private void InitializeServices(AirdropSettings settings)
@@ -2012,7 +2230,19 @@ namespace AirdropExtended.Airdrop.Services
 			Diagnostics.Diagnostics.MessageTo(_context.Settings.Localization.NotifyOnDropStartedMessage, _context.Settings.CommonSettings.NotifyOnDropStarted, entity.net.ID, x, y, z);
 
 			SupplyDropLandedBehavior.AddTo(supplyDrop, _context.Settings);
-			DespawnBehavior.AddTo(entity, _context.Settings);
+			SupplyDropDespawnBehavior.AddTo(entity, _context.Settings);
+
+			var droppedPlane =
+				UnityEngine.Object.FindObjectsOfType<CargoPlane>()
+					.FirstOrDefault(p => (bool)CargoPlaneFields.DroppedField.GetValue(p));
+			if (droppedPlane == null)
+				return;
+
+			var cratesBehavior = droppedPlane.GetComponent<MultipleCratesBehavior>();
+			if (cratesBehavior == null)
+				return;
+
+			cratesBehavior.OnPlaneDroppedCrate(droppedPlane, _context.Settings, entity.transform.position);
 		}
 
 		private void FillWithCustomLoot(ItemContainer itemContainer)
@@ -2376,14 +2606,16 @@ namespace AirdropExtended.Airdrop.Settings
 			get { return _minCrates; }
 			set { _minCrates = value < 1 ? 1 : value; }
 		}
-
 		public int MaxCrates
 		{
 			get { return _maxCrates; }
 			set { _maxCrates = value < 1 ? 1 : value; }
 		}
 
+		public bool DropToOneLocation { get; set; }
+
 		public Boolean NotifyOnPlaneSpawned { get; set; }
+		public Boolean NotifyOnNextDropPosition { get; set; }
 		public Boolean NotifyOnPlaneRemoved { get; set; }
 		public Boolean NotifyOnDropStarted { get; set; }
 		public Boolean NotifyOnPlayerLootingStarted { get; set; }
@@ -2436,6 +2668,10 @@ namespace AirdropExtended.Airdrop.Settings
 
 			DropNotifyMaxDistance = DefaultDropNotifyMaxDistance;
 			SupplySignalNotifyMaxDistance = DefaultSupplySignalNotifyMaxDistance;
+
+			MinCrates = 1;
+			MaxCrates = 1;
+			DropToOneLocation = true;
 		}
 
 		public static CommonSettings CreateDefault()
@@ -2465,6 +2701,9 @@ namespace AirdropExtended.Airdrop.Settings
 				BuiltInAirdropEnabled = false,
 				PluginAirdropTimerEnabled = true,
 				PlaneSpeedInSeconds = 300,
+				DropToOneLocation = true,
+				MinCrates = 1,
+				MaxCrates = 1,
 
 				DropNotifyMaxDistance = DefaultDropNotifyMaxDistance,
 				SupplySignalNotifyMaxDistance = DefaultSupplySignalNotifyMaxDistance,
@@ -2497,6 +2736,16 @@ namespace AirdropExtended.Airdrop.Settings
 			};
 		}
 
+		public float PlaneWidth
+		{
+			get { return (Math.Abs(MinX) + Math.Abs(MaxX)) / 2.0f; }
+		}
+
+		public float PlaneHeight
+		{
+			get { return (Math.Abs(MinZ) + Math.Abs(MaxZ)) / 2.0f; }
+		}
+
 		public Vector3 GetRandomPosition()
 		{
 			var x = Oxide.Core.Random.Range(MinX, MaxX + 1) + 1;
@@ -2509,7 +2758,8 @@ namespace AirdropExtended.Airdrop.Settings
 
 	public sealed class LocalizationSettings
 	{
-		public const string DefaultNotifyOnPlaneSpawnedMessage = "Cargo Plane has been spawned, dropping at: {0},{1},{2}.";
+		public const string DefaultNotifyOnNextDropPositionMessage = "Plane is dropping at: {0},{1},{2}.";
+		public const string DefaultNotifyOPlaneSpawnedMessage = "Cargo Plane has been spawned.";
 		public const string DefaultNotifyOnPlaneRemovedMessage = "Cargo Plane has been removed, due to insufficient player count: {0}.";
 		public const string DefaultNotifyOnDropStartedMessage = "Supply Drop {0} has been spawned at {1},{2},{3}.";
 		public const string DefaultNotifyOnPlayerLootingStartedMessage = "Player {0} started looting the Supply Drop {1}.";
@@ -2526,6 +2776,7 @@ namespace AirdropExtended.Airdrop.Settings
 		private const string DefaultColor = "orange";
 
 		public string NotifyOnPlaneSpawnedMessage { get; set; }
+		public string NotifyOnNextDropPositionMessage { get; set; }
 		public string NotifyOnPlaneRemovedMessage { get; set; }
 		public string NotifyOnDropStartedMessage { get; set; }
 		public string NotifyOnPlayerLootingStartedMessage { get; set; }
@@ -2544,7 +2795,8 @@ namespace AirdropExtended.Airdrop.Settings
 
 		public LocalizationSettings()
 		{
-			NotifyOnPlaneSpawnedMessage = DefaultNotifyOnPlaneSpawnedMessage;
+			NotifyOnPlaneSpawnedMessage = DefaultNotifyOPlaneSpawnedMessage;
+			NotifyOnNextDropPositionMessage = DefaultNotifyOnNextDropPositionMessage;
 			NotifyOnPlaneRemovedMessage = DefaultNotifyOnPlaneRemovedMessage;
 			NotifyOnDropStartedMessage = DefaultNotifyOnDropStartedMessage;
 			NotifyOnPlayerLootingStartedMessage = DefaultNotifyOnPlayerLootingStartedMessage;
