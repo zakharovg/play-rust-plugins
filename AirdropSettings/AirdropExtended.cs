@@ -30,7 +30,7 @@ using Timer = Oxide.Core.Libraries.Timer;
 
 namespace Oxide.Plugins
 {
-	[Info(Constants.PluginName, "baton", "0.8.1", ResourceId = 1210)]
+	[Info(Constants.PluginName, "baton", "0.8.2", ResourceId = 1210)]
 	[Description("Customizable airdrop")]
 	public class AirdropExtended : RustPlugin
 	{
@@ -1640,28 +1640,26 @@ namespace AirdropExtended.Commands
 			}
 
 			int x, y, z;
-			if (!arg.HasArgs(3))
+			if (!arg.HasArgs(2))
 			{
 				var argz = arg.GetString(0);
 				var coordinates = argz.Split(Separators);
-				if (coordinates.Length < 3)
+				if (coordinates.Length < 2)
 				{
 					PrintUsage(player);
 					return;
 				}
 
 				x = int.Parse(coordinates[0]);
-				y = int.Parse(coordinates[1]);
-				z = int.Parse(coordinates[2]);
+				z = int.Parse(coordinates[1]);
 			}
 			else
 			{
 				x = arg.GetInt(0);
-				y = arg.GetInt(1);
-				z = arg.GetInt(2);
+				z = arg.GetInt(1);
 			}
 
-			AirdropService.CallToPos(new Vector3(x, y, z));
+			AirdropService.CallToPos(new Vector3(x, 300.0f, z));
 		}
 
 		protected override string GetUsageString()

@@ -110,6 +110,7 @@
     <Compile Include="AirdropExtended.cs" />
     <Compile Include="ClanswithKickDefined.cs" />
     <Compile Include="EconomicsVip.cs" />
+    <Compile Include="HowIDied.cs" />
     <Compile Include="PrintItemNames.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ZoneWarfare.cs" />
