@@ -30,7 +30,7 @@ using Timer = Oxide.Core.Libraries.Timer;
 
 namespace Oxide.Plugins
 {
-	[Info(Constants.PluginName, "baton", "0.8.2", ResourceId = 1210)]
+	[Info(Constants.PluginName, "baton", "0.8.3", ResourceId = 1210)]
 	[Description("Customizable airdrop")]
 	public class AirdropExtended : RustPlugin
 	{
@@ -1639,7 +1639,7 @@ namespace AirdropExtended.Commands
 				return;
 			}
 
-			int x, y, z;
+			int x, z;
 			if (!arg.HasArgs(2))
 			{
 				var argz = arg.GetString(0);
@@ -2321,7 +2321,7 @@ namespace AirdropExtended.Airdrop.Services
 		{
 			var players = BasePlayer.activePlayerList;
 			var supplyPosition = entity.transform.position;
-			var nearbyPlayers = players.Count(p => Vector3.Distance(p.transform.position, supplyPosition) < 300);
+			var nearbyPlayers = players.Count(p => Vector3.Distance(p.transform.position, supplyPosition) < airdropSettings.CommonSettings.SupplySignalNotifyMaxDistance);
 
 			foreach (var otherPlayer in players)
 			{
@@ -2678,7 +2678,7 @@ namespace AirdropExtended.Airdrop.Settings
 			NotifyAboutPlayersAroundOnSupplyThrown = false;
 			NotifyAboutDirectionAroundOnSupplyThrown = false;
 
-			PlaneSpeedInSeconds = 300;
+			PlaneSpeedInSeconds = 50;
 
 			DropNotifyMaxDistance = DefaultDropNotifyMaxDistance;
 			SupplySignalNotifyMaxDistance = DefaultSupplySignalNotifyMaxDistance;
@@ -2714,7 +2714,7 @@ namespace AirdropExtended.Airdrop.Settings
 				SupplySignalsEnabled = true,
 				BuiltInAirdropEnabled = false,
 				PluginAirdropTimerEnabled = true,
-				PlaneSpeedInSeconds = 300,
+				PlaneSpeedInSeconds = 50,
 				DropToOneLocation = true,
 				MinCrates = 1,
 				MaxCrates = 1,
