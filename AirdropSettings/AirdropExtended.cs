@@ -1624,7 +1624,7 @@ namespace AirdropExtended.Commands
 
 	public class CallToPosCommand : AirdropExtendedCommand
 	{
-		private static readonly string[] UsageStrings = { "aire.topos x y z", "aire.topos x;y;z", "aire.topos x,y,z" };
+		private static readonly string[] UsageStrings = { "aire.topos x z", "aire.topos x;z", "aire.topos x,z" };
 		private static readonly char[] Separators = { ';', ',' };
 
 		public CallToPosCommand()
