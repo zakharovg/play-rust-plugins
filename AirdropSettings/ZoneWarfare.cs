@@ -3,20 +3,12 @@ using System.Collections.Generic;
 
 namespace Oxide.Plugins
 {
-	public sealed class CaptureTeam
-	{
-		public string ClanName { get; set; }
-		public List<BasePlayer> ClanMembers { get; set; }
-		public TimeSpan TimePassedSinceCapture { get; set; }
-	}
-
 	[Info("ZoneWarfare", "baton", "0.0.1", ResourceId = 1210)]
 	[Description("Customizable airdrop")]
 	public class ZoneWarfare : RustPlugin
 	{
 		private static string[] _capturableZoneNames;
 		private static TimeSpan _timeToCaptureZone;
-		private static Dictionary<string, CaptureTeam> _captureTeams = new Dictionary<string, CaptureTeam>();
 
 		void OnServerInitialized()
 		{
@@ -33,6 +25,29 @@ namespace Oxide.Plugins
 
 			Config["capturableZoneNames"] = string.Join(",", _capturableZoneNames);
 			Config["timeToCaptureZone"] = _timeToCaptureZone.ToString();
+		}
+	}
+}
+
+namespace ZoneWarfare.Domain
+{
+	public sealed class Zone
+	{
+		public string Name { get; set; }
+
+		public List<BasePlayer> GetPlayersInZone()
+		{
+			return null;
+		}
+	}
+
+	public sealed class Clan
+	{
+		public string Name { get; set; }
+
+		public List<BasePlayer> GetMembers()
+		{
+			return null;
 		}
 	}
 }

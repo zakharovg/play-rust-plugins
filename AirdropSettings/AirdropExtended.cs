@@ -30,7 +30,7 @@ using Timer = Oxide.Core.Libraries.Timer;
 
 namespace Oxide.Plugins
 {
-	[Info(Constants.PluginName, "baton", "0.8.3", ResourceId = 1210)]
+	[Info(Constants.PluginName, "baton", "0.8.4", ResourceId = 1210)]
 	[Description("Customizable airdrop")]
 	public class AirdropExtended : RustPlugin
 	{
@@ -260,6 +260,30 @@ namespace Oxide.Plugins
 		private void CallDropToMeChatCommand(BasePlayer player, string command, string[] args)
 		{
 			_commands["aire.tome"].ExecuteFromChat(player, command, args);
+		}
+
+		[ChatCommand("aire.localize")]
+		private void CallLocalizeCommand(BasePlayer player, string command, string[] args)
+		{
+			_commands["aire.localize"].ExecuteFromChat(player, command, args);
+		}
+
+		[ChatCommand("aire.notify")]
+		private void CallNotifyCommand(BasePlayer player, string command, string[] args)
+		{
+			_commands["aire.notify"].ExecuteFromChat(player, command, args);
+		}
+
+		[ChatCommand("aire.customloot")]
+		private void CallSetCustomLootCommand(BasePlayer player, string command, string[] args)
+		{
+			_commands["aire.customloot"].ExecuteFromChat(player, command, args);
+		}
+
+		[ChatCommand("aire.pick")]
+		private void CallSetPickStrategyCommand(BasePlayer player, string command, string[] args)
+		{
+			_commands["aire.pick"].ExecuteFromChat(player, command, args);
 		}
 
 		#endregion
@@ -1728,6 +1752,185 @@ namespace AirdropExtended.Commands
 		}
 	}
 
+	public class LocalizeCommand : AirdropExtendedCommand
+	{
+		private readonly SettingsContext _context;
+		private readonly AirdropController _controller;
+
+		private static readonly Type LocalizationType = typeof(LocalizationSettings);
+
+		public LocalizeCommand(SettingsContext context, AirdropController controller)
+			: base("aire.localize", "aire.canLocalize")
+		{
+			if (context == null) throw new ArgumentNullException("context");
+			if (controller == null) throw new ArgumentNullException("controller");
+			_context = context;
+			_controller = controller;
+		}
+
+		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		{
+			if (!arg.HasArgs(2))
+			{
+				PrintUsage(player);
+				return;
+			}
+
+			var message = arg.GetString(0);
+			var text = arg.GetString(1);
+
+			var messagePropertyInfo = LocalizationType.GetProperty(message);
+			if (messagePropertyInfo == null)
+			{
+				Diagnostics.Diagnostics.MessageToServerAndPlayer(player, "Couldn't find message setting: {0}", message);
+				return;
+			}
+			if (messagePropertyInfo.PropertyType != typeof(String))
+			{
+				Diagnostics.Diagnostics.MessageToServerAndPlayer(player, "Property is not of string type: {0}", message);
+				return;
+			}
+			Diagnostics.Diagnostics.MessageToServerAndPlayer(player, "Setting message {0} to {1}", message, text);
+			messagePropertyInfo.SetValue(_context.Settings.Localization, text, null);
+
+			_controller.ApplySettings();
+		}
+
+		protected override string GetUsageString()
+		{
+			return GetDefaultUsageString("18");
+		}
+	}
+
+	public class SetNotifyEnabledCommand : AirdropExtendedCommand
+	{
+		private readonly SettingsContext _context;
+		private readonly AirdropController _controller;
+
+		private static readonly Type LocalizationType = typeof(CommonSettings);
+
+		public SetNotifyEnabledCommand(SettingsContext context, AirdropController controller)
+			: base("aire.notify", "aire.canNotify")
+		{
+			if (context == null) throw new ArgumentNullException("context");
+			if (controller == null) throw new ArgumentNullException("controller");
+			_context = context;
+			_controller = controller;
+		}
+
+		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		{
+			if (!arg.HasArgs(2))
+			{
+				PrintUsage(player);
+				return;
+			}
+
+			var switchName = arg.GetString(0);
+			var value = arg.GetBool(1);
+
+			var notifySwitchPropertyInfo = LocalizationType.GetProperty(switchName);
+			if (notifySwitchPropertyInfo == null)
+			{
+				Diagnostics.Diagnostics.MessageToServerAndPlayer(player, "Couldn't find notify setting: {0}", switchName);
+				return;
+			}
+
+			if (notifySwitchPropertyInfo.PropertyType != typeof(bool))
+			{
+				Diagnostics.Diagnostics.MessageToServerAndPlayer(player, "Property is not of bool type: {0}", switchName);
+				return;
+			}
+
+			Diagnostics.Diagnostics.MessageToServerAndPlayer(player, "Setting {0} to {1}", switchName, value);
+			notifySwitchPropertyInfo.SetValue(_context.Settings.CommonSettings, value, null);
+
+			_controller.ApplySettings();
+		}
+
+		protected override string GetUsageString()
+		{
+			return GetDefaultUsageString("18");
+		}
+	}
+
+	public class SetCustomLootEnabledCommand : AirdropExtendedCommand
+	{
+		private readonly SettingsContext _context;
+		private readonly AirdropController _controller;
+
+		public SetCustomLootEnabledCommand(SettingsContext context, AirdropController controller)
+			: base("aire.customloot", "aire.canSetCustomLoot")
+		{
+			if (context == null) throw new ArgumentNullException("context");
+			if (controller == null) throw new ArgumentNullException("controller");
+			_context = context;
+			_controller = controller;
+		}
+
+		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		{
+			if (!arg.HasArgs())
+			{
+				PrintUsage(player);
+				return;
+			}
+
+			var customLoot = arg.GetBool(0);
+
+			_context.Settings.CustomLootEnabled = customLoot;
+
+			Diagnostics.Diagnostics.MessageToServerAndPlayer(player, "Setting custom loot enabled to {0}", customLoot);
+			_controller.ApplySettings();
+		}
+
+		protected override string GetUsageString()
+		{
+			return GetDefaultUsageString("false");
+		}
+	}
+
+	public class SetPickStrategyCommand : AirdropExtendedCommand
+	{
+		private readonly SettingsContext _context;
+		private readonly AirdropController _controller;
+
+		public SetPickStrategyCommand(SettingsContext context, AirdropController controller)
+			: base("aire.pick", "aire.canSetPickStrategy")
+		{
+			if (context == null) throw new ArgumentNullException("context");
+			if (controller == null) throw new ArgumentNullException("controller");
+			_context = context;
+			_controller = controller;
+		}
+
+		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		{
+			if (!arg.HasArgs())
+			{
+				PrintUsage(player);
+				return;
+			}
+
+			var pickStrategy = arg.GetInt(0);
+			if (!(Enum.IsDefined(typeof(PickStrategy), pickStrategy)))
+			{
+				Diagnostics.Diagnostics.MessageToServerAndPlayer(player, "Value {0} is not applicable.", pickStrategy);
+				return;
+			}
+
+			_context.Settings.PickStrategy = (PickStrategy)pickStrategy;
+
+			Diagnostics.Diagnostics.MessageToServerAndPlayer(player, "Setting Pick Strategy to {0}", pickStrategy);
+			_controller.ApplySettings();
+		}
+
+		protected override string GetUsageString()
+		{
+			return GetDefaultUsageString("true");
+		}
+	}
+
 	public static class CommandFactory
 	{
 		public static List<AirdropExtendedCommand> Create(
@@ -1763,7 +1966,11 @@ namespace AirdropExtended.Commands
 					new CallRandomDropCommand(context),
 					new CallToPosCommand(),
 					new CallToPlayerCommand(),
-					new CallToMeCommand()
+					new CallToMeCommand(),
+					new LocalizeCommand(context, controller),
+					new SetNotifyEnabledCommand(context, controller),
+					new SetCustomLootEnabledCommand(context, controller),
+					new SetPickStrategyCommand(context, controller)
 				};
 		}
 	}
