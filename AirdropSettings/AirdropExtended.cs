@@ -1952,7 +1952,7 @@ namespace AirdropExtended.Commands
 		{
 			var itemList = _context.Settings.CreateItemList();
 			Diagnostics.Diagnostics.MessageToServerAndPlayer(player, "Test airdrop crate contents:");
-			Diagnostics.Diagnostics.MessageToServerAndPlayer(player, "===================================================");
+			Diagnostics.Diagnostics.MessageToServerAndPlayer(player, "================================================");
 			foreach (var item in itemList)
 			{
 				var itemName = item.info.displayName.english;
@@ -1963,7 +1963,7 @@ namespace AirdropExtended.Commands
 					item.HasFlag(Item.Flag.Blueprint), 
 					item.amount);
 			}
-			Diagnostics.Diagnostics.MessageToServerAndPlayer(player, "===================================================");
+			Diagnostics.Diagnostics.MessageToServerAndPlayer(player, "================================================");
 		}
 
 		protected override string GetUsageString()
