@@ -2948,10 +2948,10 @@ namespace AirdropExtended.Airdrop.Settings
 			var halfOfWorldSize = Convert.ToInt32(World.Size / 2);
 			return new DropLocationSettings
 			{
-				MinX = -halfOfWorldSize - 500,
-				MaxX = halfOfWorldSize + 500,
-				MinZ = -halfOfWorldSize - 500,
-				MaxZ = halfOfWorldSize + 500,
+				MinX = -halfOfWorldSize + 500,
+				MaxX = halfOfWorldSize - 500,
+				MinZ = -halfOfWorldSize + 500,
+				MaxZ = halfOfWorldSize - 500,
 				MinY = 200,
 				MaxY = 300
 			};
@@ -2986,7 +2986,7 @@ namespace AirdropExtended.Airdrop.Settings
 		public const string DefaultNotifyOnPlayerLootingStartedMessage = "Player {0} started looting the Supply Drop {1}.";
 		private const string DefaultNotifyOnCollisionMessage = "Supply drop {0} has landed at {1},{2},{3}";
 		private const string DefaultNotifyOnDespawnMessage = "Supply drop {0} has been despawned at {1},{2},{3}";
-		private const string DefaultNotifyOnSupplySingalDisabledMessage = "Supply signals are disabled by server. An item has been added to your invertory/belt.";
+		private const string DefaultNotifyOnSupplySingalDisabledMessage = "Supply signals are disabled by server. An item has been added to your inventory/belt.";
 		private const string DefaultNotifyAboutPlayersAroundOnDropLandMessage = "There are {0} players near drop, including you!";
 		private const string DefaultNotifyAboutDirectionAroundOnDropLandMessage = "Airdrop is {0:F0} meters away from you! Direction: {1}";
 
