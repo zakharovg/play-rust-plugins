@@ -30,7 +30,7 @@ using Timer = Oxide.Core.Libraries.Timer;
 
 namespace Oxide.Plugins
 {
-	[Info(Constants.PluginName, "baton", "0.8.5", ResourceId = 1210)]
+	[Info(Constants.PluginName, "baton", "0.8.6", ResourceId = 1210)]
 	[Description("Customizable airdrop")]
 	public class AirdropExtended : RustPlugin
 	{
@@ -3369,13 +3369,19 @@ namespace AirdropExtended.Airdrop.Settings.Generate
 							{
 								Func<ItemDefinition, int[]> amountFunc;
 								DefaultAmountByCategoryMapping.TryGetValue(categoryName, out amountFunc);
-								var amountMappingArray = amountFunc == null
+								var amountMappingArray = amountFunc == null 
 									? new[] { 0, 0 }
 									: amountFunc(itemDefinition);
 
+								var chanceInPercent = ItemManager.bpList.Any(bp =>
+										bp.targetItem.shortname.Equals(itemDefinition.shortname, StringComparison.OrdinalIgnoreCase) &&
+										bp.defaultBlueprint) 
+									? 0.0f 
+									: CalculateChanceByRarity(itemDefinition.rarity);
+								
 								return new AirdropItem
 								{
-									ChanceInPercent = CalculateChanceByRarity(itemDefinition.rarity),
+									ChanceInPercent = chanceInPercent,
 									Name = itemDefinition.shortname,
 									MinAmount = amountMappingArray[0],
 									MaxAmount = amountMappingArray[1]
