@@ -30,7 +30,7 @@ using Timer = Oxide.Core.Libraries.Timer;
 
 namespace Oxide.Plugins
 {
-	[Info(Constants.PluginName, "baton", "0.8.4", ResourceId = 1210)]
+	[Info(Constants.PluginName, "baton", "0.8.5", ResourceId = 1210)]
 	[Description("Customizable airdrop")]
 	public class AirdropExtended : RustPlugin
 	{
@@ -284,6 +284,12 @@ namespace Oxide.Plugins
 		private void CallSetPickStrategyCommand(BasePlayer player, string command, string[] args)
 		{
 			_commands["aire.pick"].ExecuteFromChat(player, command, args);
+		}
+
+		[ChatCommand("aire.test")]
+		private void CallTestLootCommand(BasePlayer player, string command, string[] args)
+		{
+			_commands["aire.test"].ExecuteFromChat(player, command, args);
 		}
 
 		#endregion
@@ -1931,6 +1937,41 @@ namespace AirdropExtended.Commands
 		}
 	}
 
+	public class PrintTestDropContentsCommand : AirdropExtendedCommand
+	{
+		private readonly SettingsContext _context;
+
+		public PrintTestDropContentsCommand(SettingsContext context)
+			: base("aire.test", "aire.canTest")
+		{
+			if (context == null) throw new ArgumentNullException("context");
+			_context = context;
+		}
+
+		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		{
+			var itemList = _context.Settings.CreateItemList();
+			Diagnostics.Diagnostics.MessageToServerAndPlayer(player, "Test airdrop crate contents:");
+			Diagnostics.Diagnostics.MessageToServerAndPlayer(player, "===================================================");
+			foreach (var item in itemList)
+			{
+				var itemName = item.info.displayName.english;
+				Diagnostics.Diagnostics.MessageToServerAndPlayer(
+					player,
+					"Item: |{0,20}|, bp: {1}, count: {2}", 
+					itemName.Substring(0, Math.Min(itemName.Length, 18)), 
+					item.HasFlag(Item.Flag.Blueprint), 
+					item.amount);
+			}
+			Diagnostics.Diagnostics.MessageToServerAndPlayer(player, "===================================================");
+		}
+
+		protected override string GetUsageString()
+		{
+			return GetDefaultUsageString("true");
+		}
+	}
+
 	public static class CommandFactory
 	{
 		public static List<AirdropExtendedCommand> Create(
@@ -1970,7 +2011,8 @@ namespace AirdropExtended.Commands
 					new LocalizeCommand(context, controller),
 					new SetNotifyEnabledCommand(context, controller),
 					new SetCustomLootEnabledCommand(context, controller),
-					new SetPickStrategyCommand(context, controller)
+					new SetPickStrategyCommand(context, controller),
+					new PrintTestDropContentsCommand(context)
 				};
 		}
 	}
