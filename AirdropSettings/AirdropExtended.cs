@@ -744,7 +744,6 @@ namespace AirdropExtended.Diagnostics
 
 		public static void MessageToPlayer(BasePlayer player, string message, params object[] args)
 		{
-
 			player.SendConsoleCommand("chat.add", new object[] { 0, string.Format(Format, Color, Prefix) + string.Format(message, args), 1f });
 		}
 
@@ -822,7 +821,7 @@ namespace AirdropExtended.Commands
 		{
 			if (!PermissionService.HasPermission(player, PermissionName))
 			{
-				Diagnostics.Diagnostics.MessageToPlayer(player, "You have are required to have permission \"{0}\" to run command:{1}", PermissionName, Name);
+				Diagnostics.Diagnostics.MessageToPlayer(player, "You have are required to have permission \"{0}\" to run command: {1}", PermissionName, Name);
 				return;
 			}
 
