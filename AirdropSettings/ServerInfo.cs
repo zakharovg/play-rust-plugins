@@ -173,8 +173,8 @@ namespace Oxide.Plugins
 			{
 				RectTransform =
 				{
-					AnchorMin = "0.22 0.85",
-					AnchorMax = "0.9 0.98"
+					AnchorMin = "0.01 0.85",
+					AnchorMax = "0.99 0.98"
 				},
 				Text =
 				{
@@ -195,8 +195,8 @@ namespace Oxide.Plugins
 				{
 					RectTransform =
 					{
-						AnchorMin = "0.22 " + (firstLineMargin - textLineHeight * (textRow + 1)),
-						AnchorMax = "0.9 " + (firstLineMargin - textLineHeight * textRow)
+						AnchorMin = "0.01 " + (firstLineMargin - textLineHeight * (textRow + 1)),
+						AnchorMax = "0.99 " + (firstLineMargin - textLineHeight * textRow)
 					},
 					Text =
 					{
