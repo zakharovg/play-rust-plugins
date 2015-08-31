@@ -129,26 +129,6 @@ namespace Oxide.Plugins
 			};
 
 			var mainPanelName = container.Add(mainPanel);
-			var closeButton = new CuiButton
-			{
-				Button =
-				{
-					Close = mainPanelName,
-					Color = "0.8 0.8 0.8 0.2"
-				},
-				RectTransform =
-				{
-					AnchorMin = "0.86 0.92",
-					AnchorMax = "0.97 0.98"
-				},
-				Text =
-				{
-					Text = "Close",
-					FontSize = 18,
-					Align = TextAnchor.MiddleCenter
-				}
-			};
-			container.Add(closeButton, mainPanelName);
 			return mainPanelName;
 		}
 
@@ -164,7 +144,7 @@ namespace Oxide.Plugins
 				RectTransform =
 				{
 					AnchorMin = "0.22 0.01",
-					AnchorMax = "0.85 0.98"
+					AnchorMax = "0.99 0.98"
 				}
 
 			}, mainPanelName);
@@ -174,7 +154,7 @@ namespace Oxide.Plugins
 				RectTransform =
 				{
 					AnchorMin = "0.01 0.85",
-					AnchorMax = "0.99 0.98"
+					AnchorMax = "1.0 0.98"
 				},
 				Text =
 				{
@@ -184,8 +164,29 @@ namespace Oxide.Plugins
 				}
 			};
 			container.Add(cuiLabel, tabContentPanelName);
+			
+			var closeButton = new CuiButton
+			{
+				Button =
+				{
+					Close = mainPanelName,
+					Color = "0.8 0.8 0.8 0.2"
+				},
+				RectTransform =
+				{
+					AnchorMin = "0.86 0.93",
+					AnchorMax = "0.97 0.99"
+				},
+				Text =
+				{
+					Text = "Close",
+					FontSize = 18,
+					Align = TextAnchor.MiddleCenter
+				}
+			};
+			container.Add(closeButton, tabContentPanelName);
 
-			const float firstLineMargin = 0.86f;
+			const float firstLineMargin = 0.91f;
 			const float textLineHeight = 0.04f;
 
 			for (int textRow = 0; textRow < helpTab.TextLines.Count; textRow++)
@@ -196,7 +197,7 @@ namespace Oxide.Plugins
 					RectTransform =
 					{
 						AnchorMin = "0.01 " + (firstLineMargin - textLineHeight * (textRow + 1)),
-						AnchorMax = "0.99 " + (firstLineMargin - textLineHeight * textRow)
+						AnchorMax = "1.0 " + (firstLineMargin - textLineHeight * textRow)
 					},
 					Text =
 					{
