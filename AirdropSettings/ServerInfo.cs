@@ -5,14 +5,13 @@ using System.Linq;
 using Oxide.Core;
 using Oxide.Core.Libraries;
 using Oxide.Game.Rust.Cui;
-using PVT;
 using ServerInfo;
 using ServerInfo.Extensions;
 using UnityEngine;
 
 namespace Oxide.Plugins
 {
-	[Info("ServerInfo", "baton", "0.0.2", ResourceId = 100500)]
+	[Info("ServerInfo", "baton", "0.1.1", ResourceId = 100500)]
 	[Description("UI customizable server info with multiple tabs.")]
 	public sealed class ServerInfo : RustPlugin
 	{
@@ -71,7 +70,6 @@ namespace Oxide.Plugins
 		[ConsoleCommand("changepage")]
 		private void ChangePage(ConsoleSystem.Arg arg)
 		{
-			Puts(arg.ArgsStr);
 			if (arg.connection == null || arg.connection.player == null || !arg.HasArgs(3))
 				return;
 
