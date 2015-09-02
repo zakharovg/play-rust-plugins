@@ -5,6 +5,7 @@ using System.Linq;
 using Oxide.Core;
 using Oxide.Core.Libraries;
 using Oxide.Game.Rust.Cui;
+using PVT;
 using ServerInfo;
 using ServerInfo.Extensions;
 using UnityEngine;
@@ -57,11 +58,41 @@ namespace Oxide.Plugins
 
 			var tabToSelect = _settings.Tabs[tabToSelectIndex];
 			PlayerActiveTabs[player.userID].ActiveTabIndex = tabToSelectIndex;
+			PlayerActiveTabs[player.userID].PageIndex = 0;
 
 			var container = new CuiElementContainer();
 			var tabContentPanelName = CreateTabContent(tabToSelect, container, mainPanelName);
 			var newActiveButtonName = AddActiveButton(tabToSelectIndex, container, mainPanelName);
 			AddNonActiveButton(previousTabIndex, container, mainPanelName, tabContentPanelName, newActiveButtonName);
+
+			CuiHelper.AddUi(player, container);
+		}
+
+		[ConsoleCommand("changepage")]
+		private void ChangePage(ConsoleSystem.Arg arg)
+		{
+			Puts(arg.ArgsStr);
+			if (arg.connection == null || arg.connection.player == null || !arg.HasArgs(3))
+				return;
+
+			var player = (BasePlayer)arg.connection.player;
+			var playerInfoState = PlayerActiveTabs[player.userID];
+			var currentTab = _settings.Tabs[playerInfoState.ActiveTabIndex];
+			var currentPageIndex = playerInfoState.PageIndex;
+
+			var pageToChangeTo = arg.GetInt(0, 65535);
+			var tabContentPanelName = arg.GetString(1);
+			var mainPanelName = arg.GetString(2);
+
+			if (pageToChangeTo == currentPageIndex)
+				return;
+
+			CuiHelper.DestroyUi(player, tabContentPanelName);
+
+			playerInfoState.PageIndex = pageToChangeTo;
+
+			var container = new CuiElementContainer();
+			CreateTabContent(currentTab, container, mainPanelName, pageToChangeTo);
 
 			CuiHelper.AddUi(player, container);
 		}
@@ -77,7 +108,7 @@ namespace Oxide.Plugins
 				return;
 
 			const string defaultName = "defaultString";
-			var mainPanelName = arg.GetString(0, defaultName);
+			string mainPanelName = arg.GetString(0, defaultName);
 
 			if (mainPanelName.Equals(defaultName, StringComparison.OrdinalIgnoreCase))
 				return;
@@ -88,6 +119,7 @@ namespace Oxide.Plugins
 				return;
 
 			state.ActiveTabIndex = _settings.TabToOpenByDefault;
+			state.PageIndex = 0;
 
 			CuiHelper.DestroyUi(player, mainPanelName);
 		}
@@ -122,19 +154,19 @@ namespace Oxide.Plugins
 				PlayerActiveTabs.Add(player.userID, new PlayerInfoState(_settings));
 
 			var container = new CuiElementContainer();
-			var mainPanelName = AddMainPanel(container);
+			string mainPanelName = AddMainPanel(container);
 
 			//Add tab buttons
 
-			var activeTabIndex = _settings.TabToOpenByDefault;
-			var tabs = _settings.Tabs
-					.Where((tab, tabIndex) =>
-						Permission.UserHasGroup(player.userID.ToString(CultureInfo.InvariantCulture), tab.OxideGroup))
-					.ToList();
-			var activeTab = tabs[activeTabIndex];
+			int activeTabIndex = _settings.TabToOpenByDefault;
+			List<HelpTab> tabs = _settings.Tabs
+				.Where((tab, tabIndex) =>
+					Permission.UserHasGroup(player.userID.ToString(CultureInfo.InvariantCulture), tab.OxideGroup))
+				.ToList();
+			HelpTab activeTab = tabs[activeTabIndex];
 
-			var tabContentPanelName = CreateTabContent(activeTab, container, mainPanelName);
-			var activeTabButtonName = AddActiveButton(activeTabIndex, container, mainPanelName);
+			string tabContentPanelName = CreateTabContent(activeTab, container, mainPanelName);
+			string activeTabButtonName = AddActiveButton(activeTabIndex, container, mainPanelName);
 
 			for (int tabIndex = 0; tabIndex < tabs.Count; tabIndex++)
 			{
@@ -167,11 +199,11 @@ namespace Oxide.Plugins
 				}
 			};
 
-			var mainPanelName = container.Add(mainPanel);
+			string mainPanelName = container.Add(mainPanel);
 			return mainPanelName;
 		}
 
-		private string CreateTabContent(HelpTab helpTab, CuiElementContainer container, string mainPanelName)
+		private string CreateTabContent(HelpTab helpTab, CuiElementContainer container, string mainPanelName, int pageIndex = 0)
 		{
 			Color backgroundColor;
 			Color.TryParseHexString(_settings.BackgroundColor, out backgroundColor);
@@ -187,7 +219,6 @@ namespace Oxide.Plugins
 					AnchorMin = "0.22 0.01",
 					AnchorMax = "0.99 0.98"
 				}
-
 			}, mainPanelName);
 
 			var cuiLabel = new CuiLabel
@@ -233,9 +264,10 @@ namespace Oxide.Plugins
 			const float firstLineMargin = 0.91f;
 			const float textLineHeight = 0.04f;
 
-			for (int textRow = 0; textRow < helpTab.TextLines.Count; textRow++)
+			var currentPage = helpTab.Pages[pageIndex];
+			for (var textRow = 0; textRow < currentPage.TextLines.Count; textRow++)
 			{
-				var textLine = helpTab.TextLines[textRow];
+				var textLine = currentPage.TextLines[textRow];
 				var textLineLabel = new CuiLabel
 				{
 					RectTransform =
@@ -253,6 +285,54 @@ namespace Oxide.Plugins
 				container.Add(textLineLabel, tabContentPanelName);
 			}
 
+			if (pageIndex > 0)
+			{
+				var prevPageButton = new CuiButton
+				{
+					Button =
+					{
+						Command = string.Format("changepage {0} {1} {2}", pageIndex - 1, tabContentPanelName, mainPanelName),
+						Color = closeButtonColor.ToRustFormatString()
+					},
+					RectTransform =
+					{
+						AnchorMin = "0.86 0.01",
+						AnchorMax = "0.97 0.07"
+					},
+					Text =
+					{
+						Text = "Prev Page",
+						FontSize = 18,
+						Align = TextAnchor.MiddleCenter
+					}
+				};
+				container.Add(prevPageButton, tabContentPanelName);
+			}
+
+			if (helpTab.Pages.Count - 1 == pageIndex)
+				return tabContentPanelName;
+
+			var nextPageButton = new CuiButton
+			{
+				Button =
+				{
+					Command = string.Format("changepage {0} {1} {2}", pageIndex + 1, tabContentPanelName, mainPanelName),
+					Color = closeButtonColor.ToRustFormatString()
+				},
+				RectTransform =
+				{
+					AnchorMin = "0.86 0.08",
+					AnchorMax = "0.97 0.15"
+				},
+				Text =
+				{
+					Text = "Next Page",
+					FontSize = 18,
+					Align = TextAnchor.MiddleCenter
+				}
+			};
+			container.Add(nextPageButton, tabContentPanelName);
+
 			return tabContentPanelName;
 		}
 
@@ -266,14 +346,16 @@ namespace Oxide.Plugins
 			Color nonActiveButtonColor;
 			Color.TryParseHexString(_settings.CloseButtonColor, out nonActiveButtonColor);
 
-			var helpTab = _settings.Tabs[tabIndex];
-			var helpTabButton = CreateTabButton(tabIndex, helpTab, nonActiveButtonColor);
-			var helpTabButtonName = container.Add(helpTabButton, mainPanelName);
+			HelpTab helpTab = _settings.Tabs[tabIndex];
+			CuiButton helpTabButton = CreateTabButton(tabIndex, helpTab, nonActiveButtonColor);
+			string helpTabButtonName = container.Add(helpTabButton, mainPanelName);
 
-			var helpTabButtonCuiElement = container.First(i => i.Name.Equals(helpTabButtonName, StringComparison.OrdinalIgnoreCase));
-			var generatedHelpTabButton = helpTabButtonCuiElement.Components.OfType<CuiButtonComponent>().First();
+			CuiElement helpTabButtonCuiElement =
+				container.First(i => i.Name.Equals(helpTabButtonName, StringComparison.OrdinalIgnoreCase));
+			CuiButtonComponent generatedHelpTabButton = helpTabButtonCuiElement.Components.OfType<CuiButtonComponent>().First();
 
-			var command = string.Format("changeTab {0} {1} {2} {3} {4}", tabIndex, tabContentPanelName, activeTabButtonName, helpTabButtonName, mainPanelName);
+			string command = string.Format("changeTab {0} {1} {2} {3} {4}", tabIndex, tabContentPanelName, activeTabButtonName,
+				helpTabButtonName, mainPanelName);
 			generatedHelpTabButton.Command = command;
 		}
 
@@ -285,15 +367,16 @@ namespace Oxide.Plugins
 			Color activeButtonColor;
 			Color.TryParseHexString(_settings.ActiveButtonColor, out activeButtonColor);
 
-			var activeTab = _settings.Tabs[activeTabIndex];
+			HelpTab activeTab = _settings.Tabs[activeTabIndex];
 
-			var activeHelpTabButton = CreateTabButton(activeTabIndex, activeTab, activeButtonColor);
-			var activeTabButtonName = container.Add(activeHelpTabButton, mainPanelName);
+			CuiButton activeHelpTabButton = CreateTabButton(activeTabIndex, activeTab, activeButtonColor);
+			string activeTabButtonName = container.Add(activeHelpTabButton, mainPanelName);
 
-			var activeTabButtonCuiElement = container.First(i => i.Name.Equals(activeTabButtonName, StringComparison.OrdinalIgnoreCase));
-			var activeTabButton = activeTabButtonCuiElement.Components.OfType<CuiButtonComponent>().First();
+			CuiElement activeTabButtonCuiElement =
+				container.First(i => i.Name.Equals(activeTabButtonName, StringComparison.OrdinalIgnoreCase));
+			CuiButtonComponent activeTabButton = activeTabButtonCuiElement.Components.OfType<CuiButtonComponent>().First();
 
-			var command = string.Format("changeTab {0}", activeTabIndex);
+			string command = string.Format("changeTab {0}", activeTabIndex);
 			activeTabButton.Command = command;
 
 			return activeTabButtonName;
@@ -330,17 +413,6 @@ namespace ServerInfo
 {
 	public sealed class Settings
 	{
-		public List<HelpTab> Tabs { get; set; }
-		public bool ShowInfoOnPlayerInit { get; set; }
-		public int TabToOpenByDefault { get; set; }
-
-		public WindowPosition Position { get; set; }
-
-		public string ActiveButtonColor { get; set; }
-		public string InactiveButtonColor { get; set; }
-		public string CloseButtonColor { get; set; }
-		public string BackgroundColor { get; set; }
-
 		public Settings()
 		{
 			Tabs = new List<HelpTab>();
@@ -354,36 +426,93 @@ namespace ServerInfo
 			BackgroundColor = "#" + new Color(0.1f, 0.1f, 0.1f, 1f).ToHexStringRGBA();
 		}
 
+		public List<HelpTab> Tabs { get; set; }
+		public bool ShowInfoOnPlayerInit { get; set; }
+		public int TabToOpenByDefault { get; set; }
+
+		public WindowPosition Position { get; set; }
+
+		public string ActiveButtonColor { get; set; }
+		public string InactiveButtonColor { get; set; }
+		public string CloseButtonColor { get; set; }
+		public string BackgroundColor { get; set; }
+
 		public static Settings CreateDefault()
 		{
 			var settings = new Settings();
 			settings.Tabs.Add(new HelpTab
 			{
 				Name = "First Tab",
-				TextLines =
+				Pages =
 				{
-					"This is first tab", 
-					"Add some text here by adding more lines.", 
-					"type <color=red> /info </color> to open this window"
+					new HelpTabPage
+					{
+						TextLines =
+						{
+							"This is first tab, first page.",
+							"Add some text here by adding more lines.",
+							"type <color=red> /info </color> to open this window",
+							"Press next page to check second page.",
+							"You may add more pages in config file."
+						}
+					},
+					new HelpTabPage
+					{
+						TextLines =
+						{
+							"This is first tab, second page",
+							"Add some text here by adding more lines.",
+							"type <color=red> /info </color> to open this window",
+							"Press next page to check third page.",
+							"Press prev page to go back to first page.",
+							"You may add more pages in config file."
+						}
+					}
+					,
+					new HelpTabPage
+					{
+						TextLines =
+						{
+							"This is first tab, third page",
+							"Add some text here by adding more lines.",
+							"type <color=red> /info </color> to open this window",
+							"Press prev page to go back to second page.",
+						}
+					}
 				}
 			});
 			settings.Tabs.Add(new HelpTab
 			{
 				Name = "Second Tab",
-				TextLines =
+				Pages =
 				{
-					"This is second tab",
-					"Add some text here by adding more lines.", 
-					"type <color=red> /info </color> to open this window"
+					new HelpTabPage
+					{
+						TextLines =
+						{
+							"This is second tab, first page.",
+							"Add some text here by adding more lines.",
+							"type <color=red> /info </color> to open this window",
+							"You may add more pages in config file."
+						}
+					}
 				}
 			});
 			settings.Tabs.Add(new HelpTab
 			{
 				Name = "Third Tab",
-				TextLines = { 
-					"This is third tab",
-					"Add some text here by adding more lines.", 
-					"type <color=red> /info </color> to open this window" 
+				Pages =
+				{
+					new HelpTabPage
+					{
+						TextLines =
+						{
+							"This is third tab, first page.",
+							"Add some text here by adding more lines.",
+							"type <color=red> /info </color> to open this window",
+							"You may add more pages in config file."
+						}
+					}
 				}
 			});
 			return settings;
@@ -392,11 +521,6 @@ namespace ServerInfo
 
 	public sealed class WindowPosition
 	{
-		public float MinX { get; set; }
-		public float MaxX { get; set; }
-		public float MinY { get; set; }
-		public float MaxY { get; set; }
-
 		public WindowPosition()
 		{
 			MinX = 0.15f;
@@ -404,6 +528,11 @@ namespace ServerInfo
 			MinY = 0.2f;
 			MaxY = 0.9f;
 		}
+
+		public float MinX { get; set; }
+		public float MaxX { get; set; }
+		public float MinY { get; set; }
+		public float MaxY { get; set; }
 
 		public string GetRectTransformAnchorMin()
 		{
@@ -418,8 +547,18 @@ namespace ServerInfo
 
 	public sealed class HelpTab
 	{
+		public HelpTab()
+		{
+			Name = "Default ServerInfo Help Tab";
+			Pages = new List<HelpTabPage>();
+			TextFontSize = 18;
+			HeaderFontSize = 32;
+			TextAnchor = TextAnchor.MiddleLeft;
+			OxideGroup = "player";
+		}
+
 		public string Name { get; set; }
-		public List<string> TextLines { get; set; }
+		public List<HelpTabPage> Pages { get; set; }
 
 		public TextAnchor HeaderAnchor { get; set; }
 		public int HeaderFontSize { get; set; }
@@ -428,15 +567,15 @@ namespace ServerInfo
 		public TextAnchor TextAnchor { get; set; }
 
 		public string OxideGroup { get; set; }
+	}
 
-		public HelpTab()
+	public sealed class HelpTabPage
+	{
+		public List<string> TextLines { get; set; }
+
+		public HelpTabPage()
 		{
-			Name = "Default ServerInfo Help Tab";
 			TextLines = new List<string>();
-			TextFontSize = 18;
-			HeaderFontSize = 32;
-			TextAnchor = TextAnchor.MiddleLeft;
-			OxideGroup = "player";
 		}
 	}
 
@@ -447,10 +586,12 @@ namespace ServerInfo
 			if (settings == null) throw new ArgumentNullException("settings");
 
 			ActiveTabIndex = settings.TabToOpenByDefault;
+			PageIndex = 0;
 			InfoShownOnLogin = settings.ShowInfoOnPlayerInit;
 		}
 
 		public int ActiveTabIndex { get; set; }
+		public int PageIndex { get; set; }
 		public bool InfoShownOnLogin { get; set; }
 	}
 }
