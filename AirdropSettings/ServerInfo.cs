@@ -134,7 +134,6 @@ namespace Oxide.Plugins
 
 				AddNonActiveButton(tabIndex, container, mainPanelName, tabContentPanelName, activeTabButtonName);
 			}
-
 			CuiHelper.AddUi(player, container);
 		}
 
@@ -149,8 +148,8 @@ namespace Oxide.Plugins
 				},
 				RectTransform =
 				{
-					AnchorMin = "0.15 0.2",
-					AnchorMax = "0.9 0.9"
+					AnchorMin = _settings.Position.GetRectTransformAnchorMin(),
+					AnchorMax = _settings.Position.GetRectTransformAnchorMax()
 				}
 			};
 
@@ -185,7 +184,7 @@ namespace Oxide.Plugins
 				Text =
 				{
 					Align = TextAnchor.UpperLeft,
-					FontSize = 32,
+					FontSize = helpTab.HeaderFontSize,
 					Text = helpTab.Name
 				}
 			};
@@ -196,6 +195,7 @@ namespace Oxide.Plugins
 				Button =
 				{
 					Command = string.Format("infoclose {0}", mainPanelName),
+					Close = mainPanelName,
 					Color = "0.8 0.8 0.8 0.2"
 				},
 				RectTransform =
@@ -227,8 +227,8 @@ namespace Oxide.Plugins
 					},
 					Text =
 					{
-						Align = TextAnchor.UpperLeft,
-						FontSize = 16,
+						Align = helpTab.TextAnchor,
+						FontSize = helpTab.TextFontSize,
 						Text = textLine
 					}
 				};
@@ -313,11 +313,14 @@ namespace ServerInfo
 		public bool ShowInfoOnPlayerInit { get; set; }
 		public int TabToOpenByDefault { get; set; }
 
+		public WindowPosition Position { get; set; }
+
 		public Settings()
 		{
 			Tabs = new List<HelpTab>();
 			ShowInfoOnPlayerInit = true;
 			TabToOpenByDefault = 0;
+			Position = new WindowPosition();
 		}
 
 		public static Settings CreateDefault()
@@ -356,15 +359,50 @@ namespace ServerInfo
 		}
 	}
 
+	public sealed class WindowPosition
+	{
+		public float MinX { get; set; }
+		public float MaxX { get; set; }
+		public float MinY { get; set; }
+		public float MaxY { get; set; }
+
+		public WindowPosition()
+		{
+			MinX = 0.15f;
+			MaxX = 0.9f;
+			MinY = 0.2f;
+			MaxY = 0.9f;
+		}
+
+		public string GetRectTransformAnchorMin()
+		{
+			return string.Format("{0} {1}", MinX, MinY);
+		}
+
+		public string GetRectTransformAnchorMax()
+		{
+			return string.Format("{0} {1}", MaxX, MaxY);
+		}
+	}
+
 	public sealed class HelpTab
 	{
 		public string Name { get; set; }
 		public List<string> TextLines { get; set; }
 
+		public TextAnchor HeaderAnchor { get; set; }
+		public int HeaderFontSize { get; set; }
+
+		public int TextFontSize { get; set; }
+		public TextAnchor TextAnchor { get; set; }
+
 		public HelpTab()
 		{
 			Name = "Default ServerInfo Help Tab";
 			TextLines = new List<string>();
+			TextFontSize = 18;
+			HeaderFontSize = 32;
+			TextAnchor = TextAnchor.MiddleLeft;
 		}
 	}
 
