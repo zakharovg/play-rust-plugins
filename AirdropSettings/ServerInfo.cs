@@ -61,6 +61,32 @@ namespace Oxide.Plugins
 			CuiHelper.AddUi(player, container);
 		}
 
+		[ConsoleCommand("infoclose")]
+		private void CloseInfo(ConsoleSystem.Arg arg)
+		{
+			if (arg.connection == null || arg.connection.player == null || !arg.HasArgs())
+				return;
+
+			var player = arg.connection.player as BasePlayer;
+			if (player == null)
+				return;
+
+			const string defaultName = "defaultString";
+			var mainPanelName = arg.GetString(0, defaultName);
+
+			if (mainPanelName.Equals(defaultName, StringComparison.OrdinalIgnoreCase))
+				return;
+
+			PlayerInfoState state;
+			PlayerActiveTabs.TryGetValue(player.userID, out state);
+			if (state == null)
+				return;
+
+			state.ActiveTabIndex = _settings.TabToOpenByDefault;
+
+			CuiHelper.DestroyUi(player, mainPanelName);
+		}
+
 		private void OnPlayerInit(BasePlayer player)
 		{
 			if (player == null || !_settings.ShowInfoOnPlayerInit)
@@ -71,7 +97,7 @@ namespace Oxide.Plugins
 
 			if (state == null)
 			{
-				state = new PlayerInfoState();
+				state = new PlayerInfoState(_settings);
 				PlayerActiveTabs.Add(player.userID, state);
 			}
 
@@ -88,7 +114,7 @@ namespace Oxide.Plugins
 				return;
 
 			if (!PlayerActiveTabs.ContainsKey(player.userID))
-				PlayerActiveTabs.Add(player.userID, new PlayerInfoState());
+				PlayerActiveTabs.Add(player.userID, new PlayerInfoState(_settings));
 
 			var container = new CuiElementContainer();
 			var mainPanelName = AddMainPanel(container);
@@ -164,12 +190,12 @@ namespace Oxide.Plugins
 				}
 			};
 			container.Add(cuiLabel, tabContentPanelName);
-			
+
 			var closeButton = new CuiButton
 			{
 				Button =
 				{
-					Close = mainPanelName,
+					Command = string.Format("infoclose {0}", mainPanelName),
 					Color = "0.8 0.8 0.8 0.2"
 				},
 				RectTransform =
@@ -285,19 +311,47 @@ namespace ServerInfo
 	{
 		public List<HelpTab> Tabs { get; set; }
 		public bool ShowInfoOnPlayerInit { get; set; }
+		public int TabToOpenByDefault { get; set; }
 
 		public Settings()
 		{
 			Tabs = new List<HelpTab>();
 			ShowInfoOnPlayerInit = true;
+			TabToOpenByDefault = 0;
 		}
 
 		public static Settings CreateDefault()
 		{
 			var settings = new Settings();
-			settings.Tabs.Add(new HelpTab { Name = "First Tab", TextLines = { "This is first tab" } });
-			settings.Tabs.Add(new HelpTab { Name = "Second Tab", TextLines = { "This is second tab" } });
-			settings.Tabs.Add(new HelpTab { Name = "Third Tab", TextLines = { "This is third tab" } });
+			settings.Tabs.Add(new HelpTab
+			{
+				Name = "First Tab",
+				TextLines =
+				{
+					"This is first tab", 
+					"Add some text here by adding more lines.", 
+					"type <color=red> /info </info> to open this window"
+				}
+			});
+			settings.Tabs.Add(new HelpTab
+			{
+				Name = "Second Tab",
+				TextLines =
+				{
+					"This is second tab",
+					"Add some text here by adding more lines.", 
+					"type <color=red> /info </info> to open this window"
+				}
+			});
+			settings.Tabs.Add(new HelpTab
+			{
+				Name = "Third Tab",
+				TextLines = { 
+					"This is third tab",
+					"Add some text here by adding more lines.", 
+					"type <color=red> /info </info> to open this window" 
+				}
+			});
 			return settings;
 		}
 	}
@@ -316,6 +370,14 @@ namespace ServerInfo
 
 	public sealed class PlayerInfoState
 	{
+		public PlayerInfoState(Settings settings)
+		{
+			if (settings == null) throw new ArgumentNullException("settings");
+
+			ActiveTabIndex = settings.TabToOpenByDefault;
+			InfoShownOnLogin = settings.ShowInfoOnPlayerInit;
+		}
+
 		public int ActiveTabIndex { get; set; }
 		public bool InfoShownOnLogin { get; set; }
 	}
