@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-	[Info("ServerInfo", "baton", "0.1.2", ResourceId = 100500)]
+	[Info("ServerInfo", "baton", "0.1.3", ResourceId = 100500)]
 	[Description("UI customizable server info with multiple tabs.")]
 	public sealed class ServerInfo : RustPlugin
 	{
@@ -70,6 +70,7 @@ namespace Oxide.Plugins
 		[ConsoleCommand("changepage")]
 		private void ChangePage(ConsoleSystem.Arg arg)
 		{
+			Puts(arg.ArgsStr);
 			if (arg.connection == null || arg.connection.player == null || !arg.HasArgs(3))
 				return;
 
@@ -449,6 +450,7 @@ namespace ServerInfo
 						{
 							"This is first tab, first page.",
 							"Add some text here by adding more lines.",
+							"You should replace all default text lines with whatever you feel up to",
 							"type <color=red> /info </color> to open this window",
 							"Press next page to check second page.",
 							"You may add more pages in config file."
@@ -460,6 +462,7 @@ namespace ServerInfo
 						{
 							"This is first tab, second page",
 							"Add some text here by adding more lines.",
+							"You should replace all default text lines with whatever you feel up to",
 							"type <color=red> /info </color> to open this window",
 							"Press next page to check third page.",
 							"Press prev page to go back to first page.",
@@ -473,6 +476,7 @@ namespace ServerInfo
 						{
 							"This is first tab, third page",
 							"Add some text here by adding more lines.",
+							"You should replace all default text lines with whatever you feel up to",
 							"type <color=red> /info </color> to open this window",
 							"Press prev page to go back to second page.",
 						}
@@ -490,6 +494,7 @@ namespace ServerInfo
 						{
 							"This is second tab, first page.",
 							"Add some text here by adding more lines.",
+							"You should replace all default text lines with whatever you feel up to",
 							"type <color=red> /info </color> to open this window",
 							"You may add more pages in config file."
 						}
@@ -507,6 +512,7 @@ namespace ServerInfo
 						{
 							"This is third tab, first page.",
 							"Add some text here by adding more lines.",
+							"You should replace all default text lines with whatever you feel up to",
 							"type <color=red> /info </color> to open this window",
 							"You may add more pages in config file."
 						}
