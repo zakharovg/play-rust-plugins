@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using Oxide.Core;
+using Oxide.Core.Libraries;
 using Oxide.Game.Rust.Cui;
 using ServerInfo;
 using ServerInfo.Extensions;
@@ -14,6 +17,7 @@ namespace Oxide.Plugins
 	{
 		private static Settings _settings;
 		private static readonly Dictionary<ulong, PlayerInfoState> PlayerActiveTabs = new Dictionary<ulong, PlayerInfoState>();
+		private static readonly Permission Permission = Interface.GetMod().GetLibrary<Permission>();
 
 		private void OnServerInitialized()
 		{
@@ -122,15 +126,22 @@ namespace Oxide.Plugins
 
 			//Add tab buttons
 
-			var activeTabIndex = PlayerActiveTabs[player.userID].ActiveTabIndex;
-			var activeTab = _settings.Tabs[activeTabIndex];
+			var activeTabIndex = _settings.TabToOpenByDefault;
+			var tabs = _settings.Tabs
+					.Where((tab, tabIndex) =>
+						Permission.UserHasGroup(player.userID.ToString(CultureInfo.InvariantCulture), tab.OxideGroup))
+					.ToList();
+			var activeTab = tabs[activeTabIndex];
 
 			var tabContentPanelName = CreateTabContent(activeTab, container, mainPanelName);
 			var activeTabButtonName = AddActiveButton(activeTabIndex, container, mainPanelName);
 
-			for (int tabIndex = 0; tabIndex < _settings.Tabs.Count; tabIndex++)
+			for (int tabIndex = 0; tabIndex < tabs.Count; tabIndex++)
 			{
 				if (tabIndex == activeTabIndex)
+					continue;
+
+				if (!Permission.UserHasGroup(player.userID.ToString(CultureInfo.InvariantCulture), tabs[tabIndex].OxideGroup))
 					continue;
 
 				AddNonActiveButton(tabIndex, container, mainPanelName, tabContentPanelName, activeTabButtonName);
@@ -416,6 +427,8 @@ namespace ServerInfo
 		public int TextFontSize { get; set; }
 		public TextAnchor TextAnchor { get; set; }
 
+		public string OxideGroup { get; set; }
+
 		public HelpTab()
 		{
 			Name = "Default ServerInfo Help Tab";
@@ -423,6 +436,7 @@ namespace ServerInfo
 			TextFontSize = 18;
 			HeaderFontSize = 32;
 			TextAnchor = TextAnchor.MiddleLeft;
+			OxideGroup = "player";
 		}
 	}
 
