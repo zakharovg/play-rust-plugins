@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-	[Info("ServerInfo", "baton", "0.1.3", ResourceId = 100500)]
+	[Info("ServerInfo", "baton", "0.1.4", ResourceId = 1317)]
 	[Description("UI customizable server info with multiple tabs.")]
 	public sealed class ServerInfo : RustPlugin
 	{
@@ -21,6 +21,8 @@ namespace Oxide.Plugins
 
 		private void OnServerInitialized()
 		{
+			PlayerActiveTabs.Clear();
+
 			LoadConfig();
 			var configFileName = Manager.ConfigPath + "/server_info_text.json";
 
@@ -38,7 +40,13 @@ namespace Oxide.Plugins
 			if (arg.connection == null || arg.connection.player == null || !arg.HasArgs())
 				return;
 
-			var player = (BasePlayer)arg.connection.player;
+			var player = arg.connection.player as BasePlayer;
+			if (player == null)
+				return;
+
+			if (!PlayerActiveTabs.ContainsKey(player.userID))
+				return;
+
 			var previousTabIndex = PlayerActiveTabs[player.userID].ActiveTabIndex;
 			var tabToChangeTo = arg.GetInt(0, 65535);
 
@@ -55,14 +63,19 @@ namespace Oxide.Plugins
 			CuiHelper.DestroyUi(player, activeButtonName);
 			CuiHelper.DestroyUi(player, tabToSelectButtonName);
 
-			var tabToSelect = _settings.Tabs[tabToSelectIndex];
+			var allowedTabs = _settings.Tabs
+				.Where((tab, tabIndex) =>
+					tab.OxideGroup.Split(',')
+						.Any(group => Permission.UserHasGroup(player.userID.ToString(CultureInfo.InvariantCulture), group)))
+				.ToList();
+			var tabToSelect = allowedTabs[tabToSelectIndex];
 			PlayerActiveTabs[player.userID].ActiveTabIndex = tabToSelectIndex;
 			PlayerActiveTabs[player.userID].PageIndex = 0;
 
 			var container = new CuiElementContainer();
 			var tabContentPanelName = CreateTabContent(tabToSelect, container, mainPanelName);
-			var newActiveButtonName = AddActiveButton(tabToSelectIndex, container, mainPanelName);
-			AddNonActiveButton(previousTabIndex, container, mainPanelName, tabContentPanelName, newActiveButtonName);
+			var newActiveButtonName = AddActiveButton(tabToSelectIndex, tabToSelect, container, mainPanelName);
+			AddNonActiveButton(previousTabIndex, container, _settings.Tabs[previousTabIndex], mainPanelName, tabContentPanelName, newActiveButtonName);
 
 			CuiHelper.AddUi(player, container);
 		}
@@ -70,11 +83,16 @@ namespace Oxide.Plugins
 		[ConsoleCommand("changepage")]
 		private void ChangePage(ConsoleSystem.Arg arg)
 		{
-			Puts(arg.ArgsStr);
 			if (arg.connection == null || arg.connection.player == null || !arg.HasArgs(3))
 				return;
 
-			var player = (BasePlayer)arg.connection.player;
+			var player = arg.connection.player as BasePlayer;
+			if (player == null)
+				return;
+
+			if (!PlayerActiveTabs.ContainsKey(player.userID))
+				return;
+
 			var playerInfoState = PlayerActiveTabs[player.userID];
 			var currentTab = _settings.Tabs[playerInfoState.ActiveTabIndex];
 			var currentPageIndex = playerInfoState.PageIndex;
@@ -104,6 +122,9 @@ namespace Oxide.Plugins
 
 			var player = arg.connection.player as BasePlayer;
 			if (player == null)
+				return;
+
+			if (!PlayerActiveTabs.ContainsKey(player.userID))
 				return;
 
 			const string defaultName = "defaultString";
@@ -157,25 +178,32 @@ namespace Oxide.Plugins
 
 			//Add tab buttons
 
-			int activeTabIndex = _settings.TabToOpenByDefault;
-			List<HelpTab> tabs = _settings.Tabs
+			var tabToSelectIndex = _settings.TabToOpenByDefault;
+			var allowedTabs = _settings.Tabs
 				.Where((tab, tabIndex) =>
-					Permission.UserHasGroup(player.userID.ToString(CultureInfo.InvariantCulture), tab.OxideGroup))
+					tab.OxideGroup.Split(',')
+						.Any(group => Permission.UserHasGroup(player.userID.ToString(CultureInfo.InvariantCulture), group)))
 				.ToList();
-			HelpTab activeTab = tabs[activeTabIndex];
-
-			string tabContentPanelName = CreateTabContent(activeTab, container, mainPanelName);
-			string activeTabButtonName = AddActiveButton(activeTabIndex, container, mainPanelName);
-
-			for (int tabIndex = 0; tabIndex < tabs.Count; tabIndex++)
+			if (allowedTabs.Count <= 0)
 			{
-				if (tabIndex == activeTabIndex)
+				SendReply(player, "[GUI Help] You don't have allowed info to see.");
+				return;
+			}
+
+			var activeAllowedTab = allowedTabs[tabToSelectIndex];
+
+			var tabContentPanelName = CreateTabContent(activeAllowedTab, container, mainPanelName);
+			var activeTabButtonName = AddActiveButton(tabToSelectIndex, activeAllowedTab, container, mainPanelName);
+
+			for (int tabIndex = 0; tabIndex < allowedTabs.Count; tabIndex++)
+			{
+				if (tabIndex == tabToSelectIndex)
 					continue;
 
-				if (!Permission.UserHasGroup(player.userID.ToString(CultureInfo.InvariantCulture), tabs[tabIndex].OxideGroup))
+				if (!Permission.UserHasGroup(player.userID.ToString(CultureInfo.InvariantCulture), allowedTabs[tabIndex].OxideGroup))
 					continue;
 
-				AddNonActiveButton(tabIndex, container, mainPanelName, tabContentPanelName, activeTabButtonName);
+				AddNonActiveButton(tabIndex, container, allowedTabs[tabIndex], mainPanelName, tabContentPanelName, activeTabButtonName);
 			}
 			CuiHelper.AddUi(player, container);
 		}
@@ -229,7 +257,7 @@ namespace Oxide.Plugins
 				},
 				Text =
 				{
-					Align = TextAnchor.UpperLeft,
+					Align = helpTab.HeaderAnchor,
 					FontSize = helpTab.HeaderFontSize,
 					Text = helpTab.Name
 				}
@@ -272,7 +300,7 @@ namespace Oxide.Plugins
 					RectTransform =
 					{
 						AnchorMin = "0.01 " + (firstLineMargin - textLineHeight * (textRow + 1)),
-						AnchorMax = "1.0 " + (firstLineMargin - textLineHeight * textRow)
+						AnchorMax = "0.85 " + (firstLineMargin - textLineHeight * textRow)
 					},
 					Text =
 					{
@@ -338,6 +366,7 @@ namespace Oxide.Plugins
 		private static void AddNonActiveButton(
 			int tabIndex,
 			CuiElementContainer container,
+			HelpTab helpTab,
 			string mainPanelName,
 			string tabContentPanelName,
 			string activeTabButtonName)
@@ -345,7 +374,6 @@ namespace Oxide.Plugins
 			Color nonActiveButtonColor;
 			Color.TryParseHexString(_settings.InactiveButtonColor, out nonActiveButtonColor);
 
-			HelpTab helpTab = _settings.Tabs[tabIndex];
 			CuiButton helpTabButton = CreateTabButton(tabIndex, helpTab, nonActiveButtonColor);
 			string helpTabButtonName = container.Add(helpTabButton, mainPanelName);
 
@@ -360,13 +388,12 @@ namespace Oxide.Plugins
 
 		private static string AddActiveButton(
 			int activeTabIndex,
+			HelpTab activeTab,
 			CuiElementContainer container,
 			string mainPanelName)
 		{
 			Color activeButtonColor;
 			Color.TryParseHexString(_settings.ActiveButtonColor, out activeButtonColor);
-
-			HelpTab activeTab = _settings.Tabs[activeTabIndex];
 
 			CuiButton activeHelpTabButton = CreateTabButton(activeTabIndex, activeTab, activeButtonColor);
 			string activeTabButtonName = container.Add(activeHelpTabButton, mainPanelName);
@@ -555,9 +582,10 @@ namespace ServerInfo
 		{
 			Name = "Default ServerInfo Help Tab";
 			Pages = new List<HelpTabPage>();
-			TextFontSize = 18;
+			TextFontSize = 16;
 			HeaderFontSize = 32;
 			TextAnchor = TextAnchor.MiddleLeft;
+			HeaderAnchor = TextAnchor.UpperLeft;
 			OxideGroup = "player";
 		}
 
