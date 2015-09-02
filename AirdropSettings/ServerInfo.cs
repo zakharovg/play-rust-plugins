@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Oxide.Game.Rust.Cui;
 using ServerInfo;
+using ServerInfo.Extensions;
 using UnityEngine;
 
 namespace Oxide.Plugins
@@ -139,12 +140,14 @@ namespace Oxide.Plugins
 
 		private static string AddMainPanel(CuiElementContainer container)
 		{
+			Color backgroundColor;
+			Color.TryParseHexString(_settings.BackgroundColor, out backgroundColor);
 			var mainPanel = new CuiPanel
 			{
 				CursorEnabled = true,
 				Image =
 				{
-					Color = "0.1 0.1 0.1 1",
+					Color = backgroundColor.ToRustFormatString(),
 				},
 				RectTransform =
 				{
@@ -159,12 +162,14 @@ namespace Oxide.Plugins
 
 		private string CreateTabContent(HelpTab helpTab, CuiElementContainer container, string mainPanelName)
 		{
+			Color backgroundColor;
+			Color.TryParseHexString(_settings.BackgroundColor, out backgroundColor);
 			var tabContentPanelName = container.Add(new CuiPanel
 			{
 				CursorEnabled = false,
 				Image =
 				{
-					Color = "0.1 0.1 0.1 1",
+					Color = backgroundColor.ToRustFormatString(),
 				},
 				RectTransform =
 				{
@@ -190,13 +195,15 @@ namespace Oxide.Plugins
 			};
 			container.Add(cuiLabel, tabContentPanelName);
 
+			Color closeButtonColor;
+			Color.TryParseHexString(_settings.CloseButtonColor, out closeButtonColor);
 			var closeButton = new CuiButton
 			{
 				Button =
 				{
 					Command = string.Format("infoclose {0}", mainPanelName),
 					Close = mainPanelName,
-					Color = "0.8 0.8 0.8 0.2"
+					Color = closeButtonColor.ToRustFormatString()
 				},
 				RectTransform =
 				{
@@ -245,7 +252,8 @@ namespace Oxide.Plugins
 			string tabContentPanelName,
 			string activeTabButtonName)
 		{
-			const string nonActiveButtonColor = "0.8 0.8 0.8 0.2";
+			Color nonActiveButtonColor;
+			Color.TryParseHexString(_settings.CloseButtonColor, out nonActiveButtonColor);
 
 			var helpTab = _settings.Tabs[tabIndex];
 			var helpTabButton = CreateTabButton(tabIndex, helpTab, nonActiveButtonColor);
@@ -263,7 +271,9 @@ namespace Oxide.Plugins
 			CuiElementContainer container,
 			string mainPanelName)
 		{
-			const string activeButtonColor = "0.3 0.4 0.5 1";
+			Color activeButtonColor;
+			Color.TryParseHexString(_settings.ActiveButtonColor, out activeButtonColor);
+
 			var activeTab = _settings.Tabs[activeTabIndex];
 
 			var activeHelpTabButton = CreateTabButton(activeTabIndex, activeTab, activeButtonColor);
@@ -278,7 +288,7 @@ namespace Oxide.Plugins
 			return activeTabButtonName;
 		}
 
-		private static CuiButton CreateTabButton(int tabIndex, HelpTab helpTab, string color)
+		private static CuiButton CreateTabButton(int tabIndex, HelpTab helpTab, Color color)
 		{
 			const float verticalMargin = 0.03f;
 			const float buttonHeight = 0.06f;
@@ -287,7 +297,7 @@ namespace Oxide.Plugins
 			{
 				Button =
 				{
-					Color = color
+					Color = color.ToRustFormatString()
 				},
 				RectTransform =
 				{
@@ -315,12 +325,22 @@ namespace ServerInfo
 
 		public WindowPosition Position { get; set; }
 
+		public string ActiveButtonColor { get; set; }
+		public string InactiveButtonColor { get; set; }
+		public string CloseButtonColor { get; set; }
+		public string BackgroundColor { get; set; }
+
 		public Settings()
 		{
 			Tabs = new List<HelpTab>();
 			ShowInfoOnPlayerInit = true;
 			TabToOpenByDefault = 0;
 			Position = new WindowPosition();
+
+			ActiveButtonColor = "#" + Color.cyan.ToHexStringRGBA();
+			InactiveButtonColor = "#" + Color.gray.ToHexStringRGBA();
+			CloseButtonColor = "#" + Color.gray.ToHexStringRGBA();
+			BackgroundColor = "#" + new Color(0.1f, 0.1f, 0.1f, 1f).ToHexStringRGBA();
 		}
 
 		public static Settings CreateDefault()
@@ -333,7 +353,7 @@ namespace ServerInfo
 				{
 					"This is first tab", 
 					"Add some text here by adding more lines.", 
-					"type <color=red> /info </info> to open this window"
+					"type <color=red> /info </color> to open this window"
 				}
 			});
 			settings.Tabs.Add(new HelpTab
@@ -343,7 +363,7 @@ namespace ServerInfo
 				{
 					"This is second tab",
 					"Add some text here by adding more lines.", 
-					"type <color=red> /info </info> to open this window"
+					"type <color=red> /info </color> to open this window"
 				}
 			});
 			settings.Tabs.Add(new HelpTab
@@ -352,7 +372,7 @@ namespace ServerInfo
 				TextLines = { 
 					"This is third tab",
 					"Add some text here by adding more lines.", 
-					"type <color=red> /info </info> to open this window" 
+					"type <color=red> /info </color> to open this window" 
 				}
 			});
 			return settings;
@@ -418,5 +438,16 @@ namespace ServerInfo
 
 		public int ActiveTabIndex { get; set; }
 		public bool InfoShownOnLogin { get; set; }
+	}
+}
+
+namespace ServerInfo.Extensions
+{
+	public static class ColorExtensions
+	{
+		public static string ToRustFormatString(this Color color)
+		{
+			return string.Format("{0:F2} {1:F2} {2:F2} {3:F2}", color.r, color.g, color.b, color.a);
+		}
 	}
 }
