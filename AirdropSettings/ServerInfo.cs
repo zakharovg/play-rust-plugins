@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-	[Info("ServerInfo", "baton", "0.1.4", ResourceId = 1317)]
+	[Info("ServerInfo", "baton", "0.1.5", ResourceId = 1317)]
 	[Description("UI customizable server info with multiple tabs.")]
 	public sealed class ServerInfo : RustPlugin
 	{
@@ -179,6 +179,7 @@ namespace Oxide.Plugins
 			//Add tab buttons
 
 			var tabToSelectIndex = _settings.TabToOpenByDefault;
+			Puts("tab to select index " + tabToSelectIndex);
 			var allowedTabs = _settings.Tabs
 				.Where((tab, tabIndex) =>
 					tab.OxideGroup.Split(',')
@@ -189,18 +190,17 @@ namespace Oxide.Plugins
 				SendReply(player, "[GUI Help] You don't have allowed info to see.");
 				return;
 			}
-
+			Puts("getting allowed tab");
 			var activeAllowedTab = allowedTabs[tabToSelectIndex];
-
+			Puts("got allowed tab");
 			var tabContentPanelName = CreateTabContent(activeAllowedTab, container, mainPanelName);
+			Puts("created active allowed tab");
 			var activeTabButtonName = AddActiveButton(tabToSelectIndex, activeAllowedTab, container, mainPanelName);
 
 			for (int tabIndex = 0; tabIndex < allowedTabs.Count; tabIndex++)
 			{
+				Puts(tabIndex.ToString());
 				if (tabIndex == tabToSelectIndex)
-					continue;
-
-				if (!Permission.UserHasGroup(player.userID.ToString(CultureInfo.InvariantCulture), allowedTabs[tabIndex].OxideGroup))
 					continue;
 
 				AddNonActiveButton(tabIndex, container, allowedTabs[tabIndex], mainPanelName, tabContentPanelName, activeTabButtonName);
@@ -232,6 +232,7 @@ namespace Oxide.Plugins
 
 		private string CreateTabContent(HelpTab helpTab, CuiElementContainer container, string mainPanelName, int pageIndex = 0)
 		{
+			Puts("creating tab content");
 			Color backgroundColor;
 			Color.TryParseHexString(_settings.BackgroundColor, out backgroundColor);
 			var tabContentPanelName = container.Add(new CuiPanel
@@ -291,7 +292,9 @@ namespace Oxide.Plugins
 			const float firstLineMargin = 0.91f;
 			const float textLineHeight = 0.04f;
 
+			Puts("getting current page, index:{0}, pages:{1}", pageIndex, helpTab.Pages.Count);
 			var currentPage = helpTab.Pages[pageIndex];
+			Puts("getting text rows");
 			for (var textRow = 0; textRow < currentPage.TextLines.Count; textRow++)
 			{
 				var textLine = currentPage.TextLines[textRow];
