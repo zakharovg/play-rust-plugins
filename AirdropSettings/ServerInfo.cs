@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-	[Info("ServerInfo", "baton", "0.1.1", ResourceId = 100500)]
+	[Info("ServerInfo", "baton", "0.1.2", ResourceId = 100500)]
 	[Description("UI customizable server info with multiple tabs.")]
 	public sealed class ServerInfo : RustPlugin
 	{
@@ -342,7 +342,7 @@ namespace Oxide.Plugins
 			string activeTabButtonName)
 		{
 			Color nonActiveButtonColor;
-			Color.TryParseHexString(_settings.CloseButtonColor, out nonActiveButtonColor);
+			Color.TryParseHexString(_settings.InactiveButtonColor, out nonActiveButtonColor);
 
 			HelpTab helpTab = _settings.Tabs[tabIndex];
 			CuiButton helpTabButton = CreateTabButton(tabIndex, helpTab, nonActiveButtonColor);
