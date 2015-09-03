@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-	[Info("ServerInfo", "baton", "0.1.5", ResourceId = 1317)]
+	[Info("ServerInfo", "baton", "0.1.7", ResourceId = 1317)]
 	[Description("UI customizable server info with multiple tabs.")]
 	public sealed class ServerInfo : RustPlugin
 	{
@@ -64,7 +64,7 @@ namespace Oxide.Plugins
 			CuiHelper.DestroyUi(player, tabToSelectButtonName);
 
 			var allowedTabs = _settings.Tabs
-				.Where((tab, tabIndex) =>
+				.Where((tab, tabIndex) => string.IsNullOrEmpty(tab.OxideGroup) ||
 					tab.OxideGroup.Split(',')
 						.Any(group => Permission.UserHasGroup(player.userID.ToString(CultureInfo.InvariantCulture), group)))
 				.ToList();
@@ -154,11 +154,12 @@ namespace Oxide.Plugins
 
 			if (state == null)
 			{
+				
 				state = new PlayerInfoState(_settings);
 				PlayerActiveTabs.Add(player.userID, state);
 			}
-
-			if (state.InfoShownOnLogin)
+			
+			if (!state.InfoShownOnLogin)
 				return;
 
 			ShowInfo(player, string.Empty, new string[0]);
@@ -179,9 +180,8 @@ namespace Oxide.Plugins
 			//Add tab buttons
 
 			var tabToSelectIndex = _settings.TabToOpenByDefault;
-			Puts("tab to select index " + tabToSelectIndex);
 			var allowedTabs = _settings.Tabs
-				.Where((tab, tabIndex) =>
+				.Where((tab, tabIndex) => string.IsNullOrEmpty(tab.OxideGroup) ||
 					tab.OxideGroup.Split(',')
 						.Any(group => Permission.UserHasGroup(player.userID.ToString(CultureInfo.InvariantCulture), group)))
 				.ToList();
@@ -190,16 +190,12 @@ namespace Oxide.Plugins
 				SendReply(player, "[GUI Help] You don't have allowed info to see.");
 				return;
 			}
-			Puts("getting allowed tab");
 			var activeAllowedTab = allowedTabs[tabToSelectIndex];
-			Puts("got allowed tab");
 			var tabContentPanelName = CreateTabContent(activeAllowedTab, container, mainPanelName);
-			Puts("created active allowed tab");
 			var activeTabButtonName = AddActiveButton(tabToSelectIndex, activeAllowedTab, container, mainPanelName);
 
 			for (int tabIndex = 0; tabIndex < allowedTabs.Count; tabIndex++)
 			{
-				Puts(tabIndex.ToString());
 				if (tabIndex == tabToSelectIndex)
 					continue;
 
@@ -232,7 +228,6 @@ namespace Oxide.Plugins
 
 		private string CreateTabContent(HelpTab helpTab, CuiElementContainer container, string mainPanelName, int pageIndex = 0)
 		{
-			Puts("creating tab content");
 			Color backgroundColor;
 			Color.TryParseHexString(_settings.BackgroundColor, out backgroundColor);
 			var tabContentPanelName = container.Add(new CuiPanel
@@ -292,9 +287,7 @@ namespace Oxide.Plugins
 			const float firstLineMargin = 0.91f;
 			const float textLineHeight = 0.04f;
 
-			Puts("getting current page, index:{0}, pages:{1}", pageIndex, helpTab.Pages.Count);
 			var currentPage = helpTab.Pages[pageIndex];
-			Puts("getting text rows");
 			for (var textRow = 0; textRow < currentPage.TextLines.Count; textRow++)
 			{
 				var textLine = currentPage.TextLines[textRow];
@@ -589,7 +582,7 @@ namespace ServerInfo
 			HeaderFontSize = 32;
 			TextAnchor = TextAnchor.MiddleLeft;
 			HeaderAnchor = TextAnchor.UpperLeft;
-			OxideGroup = "player";
+			OxideGroup = string.Empty;
 		}
 
 		public string Name { get; set; }
