@@ -40,7 +40,7 @@ namespace Oxide.Plugins
 		[ConsoleCommand("changetab")]
 		private void ChangeTab(ConsoleSystem.Arg arg)
 		{
-			if (arg.connection == null || arg.connection.player == null || !arg.HasArgs())
+			if (arg.connection == null || arg.connection.player == null || !arg.HasArgs(4))
 				return;
 
 			var player = arg.connection.player as BasePlayer;
@@ -53,16 +53,15 @@ namespace Oxide.Plugins
 			var previousTabIndex = PlayerActiveTabs[player.userID].ActiveTabIndex;
 			var tabToChangeTo = arg.GetInt(0, 65535);
 
-			if (previousTabIndex == tabToChangeTo || !arg.HasArgs(4))
+			if (previousTabIndex == tabToChangeTo)
 				return;
 
 			var tabToSelectIndex = arg.GetInt(0);
-			var tabContentName = arg.GetString(1);
-			var activeButtonName = arg.GetString(2);
-			var tabToSelectButtonName = arg.GetString(3);
-			var mainPanelName = arg.GetString(4);
+			var activeButtonName = arg.GetString(1);
+			var tabToSelectButtonName = arg.GetString(2);
+			var mainPanelName = arg.GetString(3);
 
-			CuiHelper.DestroyUi(player, tabContentName);
+			CuiHelper.DestroyUi(player, PlayerActiveTabs[player.userID].ActiveTabContentPanelName);
 			CuiHelper.DestroyUi(player, activeButtonName);
 			CuiHelper.DestroyUi(player, tabToSelectButtonName);
 
@@ -78,7 +77,9 @@ namespace Oxide.Plugins
 			var container = new CuiElementContainer();
 			var tabContentPanelName = CreateTabContent(tabToSelect, container, mainPanelName);
 			var newActiveButtonName = AddActiveButton(tabToSelectIndex, tabToSelect, container, mainPanelName);
-			AddNonActiveButton(previousTabIndex, container, _settings.Tabs[previousTabIndex], mainPanelName, tabContentPanelName, newActiveButtonName);
+			AddNonActiveButton(previousTabIndex, container, _settings.Tabs[previousTabIndex], mainPanelName, newActiveButtonName);
+
+			PlayerActiveTabs[player.userID].ActiveTabContentPanelName = tabContentPanelName;
 
 			CuiHelper.AddUi(player, container);
 		}
@@ -86,7 +87,7 @@ namespace Oxide.Plugins
 		[ConsoleCommand("changepage")]
 		private void ChangePage(ConsoleSystem.Arg arg)
 		{
-			if (arg.connection == null || arg.connection.player == null || !arg.HasArgs(3))
+			if (arg.connection == null || arg.connection.player == null || !arg.HasArgs(2))
 				return;
 
 			var player = arg.connection.player as BasePlayer;
@@ -101,18 +102,20 @@ namespace Oxide.Plugins
 			var currentPageIndex = playerInfoState.PageIndex;
 
 			var pageToChangeTo = arg.GetInt(0, 65535);
-			var tabContentPanelName = arg.GetString(1);
-			var mainPanelName = arg.GetString(2);
+			Puts("current tab panel name:{0}", playerInfoState.ActiveTabContentPanelName);
+			var currentTabContentPanelName = playerInfoState.ActiveTabContentPanelName;
+			var mainPanelName = arg.GetString(1);
 
 			if (pageToChangeTo == currentPageIndex)
 				return;
 
-			CuiHelper.DestroyUi(player, tabContentPanelName);
+			CuiHelper.DestroyUi(player, currentTabContentPanelName);
 
 			playerInfoState.PageIndex = pageToChangeTo;
 
 			var container = new CuiElementContainer();
-			CreateTabContent(currentTab, container, mainPanelName, pageToChangeTo);
+			var tabContentPanelName = CreateTabContent(currentTab, container, mainPanelName, pageToChangeTo);
+			PlayerActiveTabs[player.userID].ActiveTabContentPanelName = tabContentPanelName;
 
 			CuiHelper.AddUi(player, container);
 		}
@@ -179,7 +182,6 @@ namespace Oxide.Plugins
 
 			var container = new CuiElementContainer();
 			string mainPanelName = AddMainPanel(container);
-
 			//Add tab buttons
 
 			var tabToSelectIndex = _settings.TabToOpenByDefault;
@@ -193,6 +195,7 @@ namespace Oxide.Plugins
 				SendReply(player, "[GUI Help] You don't have permissions to see info.");
 				return;
 			}
+
 			var activeAllowedTab = allowedTabs[tabToSelectIndex];
 			var tabContentPanelName = CreateTabContent(activeAllowedTab, container, mainPanelName);
 			var activeTabButtonName = AddActiveButton(tabToSelectIndex, activeAllowedTab, container, mainPanelName);
@@ -202,9 +205,11 @@ namespace Oxide.Plugins
 				if (tabIndex == tabToSelectIndex)
 					continue;
 
-				AddNonActiveButton(tabIndex, container, allowedTabs[tabIndex], mainPanelName, tabContentPanelName, activeTabButtonName);
+				AddNonActiveButton(tabIndex, container, allowedTabs[tabIndex], mainPanelName, activeTabButtonName);
 			}
-			CuiHelper.AddUi(player, container);
+			PlayerActiveTabs[player.userID].ActiveTabContentPanelName = tabContentPanelName;
+			Puts("info tab panel name:{0}", PlayerActiveTabs[player.userID].ActiveTabContentPanelName);
+			CommunityEntity.ServerInstance.ClientRPCEx(new Network.SendInfo { connection = player.net.connection }, null, "AddUI", CuiHelper.ToJson(container, true));
 		}
 
 		private static string AddMainPanel(CuiElementContainer container)
@@ -213,11 +218,11 @@ namespace Oxide.Plugins
 			Color.TryParseHexString(_settings.BackgroundColor, out backgroundColor);
 			var mainPanel = new CuiPanel
 			{
-				CursorEnabled = true,
 				Image =
 				{
-					Color = backgroundColor.ToRustFormatString(),
+					Color = backgroundColor.ToRustFormatString()
 				},
+				CursorEnabled = true,
 				RectTransform =
 				{
 					AnchorMin = _settings.Position.GetRectTransformAnchorMin(),
@@ -225,47 +230,106 @@ namespace Oxide.Plugins
 				}
 			};
 
-			string mainPanelName = container.Add(mainPanel);
-			return mainPanelName;
+			var tabContentPanelName = container.Add(mainPanel);
+			if (!_settings.BackgroundImage.Enabled)
+				return tabContentPanelName;
+
+			var backgroundImage = CreateImage(tabContentPanelName, _settings.BackgroundImage);
+			container.Add(backgroundImage);
+
+			return tabContentPanelName;
 		}
+
+		private static CuiElement CreateImage(string panelName, ImageSettings settings)
+		{
+			var element = new CuiElement();
+			var image = new CuiRawImageComponent
+			{
+				Url = settings.Url,
+				Color = "1 1 1 " + Convert.ToSingle(settings.TransparencyInPercent / 100)
+			};
+			var position = settings.Position;
+			var rectTransform = new CuiRectTransformComponent
+			{
+				AnchorMin = position.GetRectTransformAnchorMin(),
+				AnchorMax = position.GetRectTransformAnchorMax()
+			};
+			element.Components.Add(image);
+			element.Components.Add(rectTransform);
+			element.Name = CuiHelper.GetGuid();
+			element.Parent = panelName;
+			return element;
+		}
+
 
 		private string CreateTabContent(HelpTab helpTab, CuiElementContainer container, string mainPanelName, int pageIndex = 0)
 		{
-			var tabContentPanelName = CreateTabContentPanel(container, mainPanelName, _settings.BackgroundColor);
-
-			var cuiLabel = CreateHeaderLabel(helpTab);
-			container.Add(cuiLabel, tabContentPanelName);
-
+			var tabPanelName = CreateTab(helpTab, container, mainPanelName, pageIndex);
 			var closeButton = CreateCloseButton(mainPanelName, _settings.CloseButtonColor);
-			container.Add(closeButton, tabContentPanelName);
+			container.Add(closeButton, tabPanelName);
+			return tabPanelName;
+		}
 
-			const float firstLineMargin = 0.91f;
-			const float textLineHeight = 0.04f;
+		private static string CreateTab(HelpTab helpTab, CuiElementContainer container, string mainPanelName, int pageIndex)
+		{
+			var tabPanelName = CreateTabPanel(container, mainPanelName, "#00000000");
 
 			var currentPage = helpTab.Pages.ElementAtOrDefault(pageIndex);
 			if (currentPage == null)
-				return tabContentPanelName;
+				return tabPanelName;
+
+			foreach (var imageSettings in currentPage.ImageSettings)
+			{
+				var imageObject = CreateImage(tabPanelName, imageSettings);
+				container.Add(imageObject);
+			}
+
+			var cuiLabel = CreateHeaderLabel(helpTab);
+			container.Add(cuiLabel, tabPanelName);
+
+			const float firstLineMargin = 0.91f;
+			const float textLineHeight = 0.04f;
 
 			for (var textRow = 0; textRow < currentPage.TextLines.Count; textRow++)
 			{
 				var textLine = currentPage.TextLines[textRow];
 				var textLineLabel = CreateTextLineLabel(helpTab, firstLineMargin, textLineHeight, textRow, textLine);
-				container.Add(textLineLabel, tabContentPanelName);
+				container.Add(textLineLabel, tabPanelName);
 			}
 
 			if (pageIndex > 0)
 			{
-				var prevPageButton = CreatePrevPageButton(mainPanelName, pageIndex, tabContentPanelName, _settings.PrevPageButtonColor);
-				container.Add(prevPageButton, tabContentPanelName);
+				var prevPageButton = CreatePrevPageButton(mainPanelName, pageIndex, _settings.PrevPageButtonColor);
+				container.Add(prevPageButton, tabPanelName);
 			}
 
 			if (helpTab.Pages.Count - 1 == pageIndex)
-				return tabContentPanelName;
+				return tabPanelName;
 
-			var nextPageButton = CreateNextPageButton(mainPanelName, pageIndex, tabContentPanelName, _settings.NextPageButtonColor);
-			container.Add(nextPageButton, tabContentPanelName);
+			var nextPageButton = CreateNextPageButton(mainPanelName, pageIndex, _settings.NextPageButtonColor);
+			container.Add(nextPageButton, tabPanelName);
 
-			return tabContentPanelName;
+			return tabPanelName;
+		}
+
+		private static string CreateTabPanel(CuiElementContainer container, string mainPanelName, string hexColor)
+		{
+			Color backgroundColor;
+			Color.TryParseHexString(hexColor, out backgroundColor);
+
+			return container.Add(new CuiPanel
+			{
+				CursorEnabled = false,
+				Image =
+				{
+					Color = backgroundColor.ToRustFormatString(),
+				},
+				RectTransform =
+				{
+					AnchorMin = "0.22 0.01",
+					AnchorMax = "0.99 0.98"
+				}
+			}, mainPanelName);
 		}
 
 		private static string CreateTabContentPanel(CuiElementContainer container, string mainPanelName, string hexColor)
@@ -282,8 +346,8 @@ namespace Oxide.Plugins
 				},
 				RectTransform =
 				{
-					AnchorMin = "0.22 0.01",
-					AnchorMax = "0.99 0.98"
+					AnchorMin = "0 0",
+					AnchorMax = "0.86 1"
 				}
 			}, mainPanelName);
 		}
@@ -352,7 +416,7 @@ namespace Oxide.Plugins
 			return textLineLabel;
 		}
 
-		private static CuiButton CreatePrevPageButton(string mainPanelName, int pageIndex, string tabContentPanelName, string hexColor)
+		private static CuiButton CreatePrevPageButton(string mainPanelName, int pageIndex, string hexColor)
 		{
 			Color color;
 			Color.TryParseHexString(hexColor, out color);
@@ -360,7 +424,7 @@ namespace Oxide.Plugins
 			{
 				Button =
 				{
-					Command = string.Format("changepage {0} {1} {2}", pageIndex - 1, tabContentPanelName, mainPanelName),
+					Command = string.Format("changepage {0} {1}", pageIndex - 1, mainPanelName),
 					Color = color.ToRustFormatString()
 				},
 				RectTransform =
@@ -377,7 +441,7 @@ namespace Oxide.Plugins
 			};
 		}
 
-		private static CuiButton CreateNextPageButton(string mainPanelName, int pageIndex, string tabContentPanelName, string hexColor)
+		private static CuiButton CreateNextPageButton(string mainPanelName, int pageIndex, string hexColor)
 		{
 			Color color;
 			Color.TryParseHexString(hexColor, out color);
@@ -385,7 +449,7 @@ namespace Oxide.Plugins
 			{
 				Button =
 				{
-					Command = string.Format("changepage {0} {1} {2}", pageIndex + 1, tabContentPanelName, mainPanelName),
+					Command = string.Format("changepage {0} {1}", pageIndex + 1, mainPanelName),
 					Color = color.ToRustFormatString()
 				},
 				RectTransform =
@@ -407,7 +471,6 @@ namespace Oxide.Plugins
 			CuiElementContainer container,
 			HelpTab helpTab,
 			string mainPanelName,
-			string tabContentPanelName,
 			string activeTabButtonName)
 		{
 			Color nonActiveButtonColor;
@@ -420,8 +483,7 @@ namespace Oxide.Plugins
 				container.First(i => i.Name.Equals(helpTabButtonName, StringComparison.OrdinalIgnoreCase));
 			CuiButtonComponent generatedHelpTabButton = helpTabButtonCuiElement.Components.OfType<CuiButtonComponent>().First();
 
-			string command = string.Format("changeTab {0} {1} {2} {3} {4}", tabIndex, tabContentPanelName, activeTabButtonName,
-				helpTabButtonName, mainPanelName);
+			string command = string.Format("changeTab {0} {1} {2} {3}", tabIndex, activeTabButtonName, helpTabButtonName, mainPanelName);
 			generatedHelpTabButton.Command = command;
 		}
 
@@ -483,21 +545,24 @@ namespace ServerInfo
 			Tabs = new List<HelpTab>();
 			ShowInfoOnPlayerInit = true;
 			TabToOpenByDefault = 0;
-			Position = new WindowPosition();
+			Position = new Position();
 
 			ActiveButtonColor = "#" + Color.cyan.ToHexStringRGBA();
 			InactiveButtonColor = "#" + Color.gray.ToHexStringRGBA();
 			CloseButtonColor = "#" + Color.gray.ToHexStringRGBA();
 			PrevPageButtonColor = "#" + Color.gray.ToHexStringRGBA();
 			NextPageButtonColor = "#" + Color.gray.ToHexStringRGBA();
-			BackgroundColor = "#" + new Color(0.1f, 0.1f, 0.1f, 1f).ToHexStringRGBA();
+			BackgroundColor = "#" + new Color(0f, 0f, 0f, 1.0f).ToHexStringRGBA();
+
+			BackgroundImage = new BackgroundImageSettings();
 		}
 
 		public List<HelpTab> Tabs { get; set; }
 		public bool ShowInfoOnPlayerInit { get; set; }
 		public int TabToOpenByDefault { get; set; }
 
-		public WindowPosition Position { get; set; }
+		public Position Position { get; set; }
+		public BackgroundImageSettings BackgroundImage { get; set; }
 
 		public string ActiveButtonColor { get; set; }
 		public string InactiveButtonColor { get; set; }
@@ -525,6 +590,41 @@ namespace ServerInfo
 							"type <color=red> /info </color> to open this window",
 							"Press next page to check second page.",
 							"You may add more pages in config file."
+						},
+						ImageSettings =
+						{
+							new ImageSettings 
+							{
+								Position = new Position
+									{
+										MinX = 0, MaxX = 0.5f, MinY = 0, MaxY = 0.5f
+									},
+								Url = "http://th04.deviantart.net/fs70/PRE/f/2012/223/4/4/rust_logo_by_furrypigdog-d5aqi3r.png"
+							},
+							new ImageSettings 
+							{
+								Position = new Position
+									{
+										MinX = 0.5f, MaxX = 1f, MinY = 0, MaxY = 0.5f
+									},
+								Url = "http://files.enjin.com/176331/IMGS/LOGO_RUST1.fw.png"
+							},
+							new ImageSettings 
+							{
+								Position = new Position
+									{
+										MinX = 0, MaxX = 0.5f, MinY = 0.5f, MaxY = 1f
+									},
+								Url = "http://files.enjin.com/176331/IMGS/LOGO_RUST1.fw.png"
+							},
+							new ImageSettings 
+							{
+								Position = new Position
+									{
+										MinX = 0.5f, MaxX = 1f, MinY = 0.5f, MaxY = 1f
+									},
+								Url = "http://th04.deviantart.net/fs70/PRE/f/2012/223/4/4/rust_logo_by_furrypigdog-d5aqi3r.png"
+							},
 						}
 					},
 					new HelpTabPage
@@ -596,9 +696,9 @@ namespace ServerInfo
 		}
 	}
 
-	public sealed class WindowPosition
+	public sealed class Position
 	{
-		public WindowPosition()
+		public Position()
 		{
 			MinX = 0.15f;
 			MaxX = 0.9f;
@@ -673,10 +773,42 @@ namespace ServerInfo
 	public sealed class HelpTabPage
 	{
 		public List<string> TextLines { get; set; }
+		public List<ImageSettings> ImageSettings { get; set; }
 
 		public HelpTabPage()
 		{
 			TextLines = new List<string>();
+			ImageSettings = new List<ImageSettings>();
+		}
+	}
+
+	public class ImageSettings
+	{
+		public Position Position { get; set; }
+		public string Url { get; set; }
+		public int TransparencyInPercent { get; set; }
+
+		public ImageSettings()
+		{
+			Position = new Position
+			{
+				MaxX = 1.0f,
+				MaxY = 1.0f,
+				MinY = 0.0f,
+				MinX = 0.0f
+			};
+			Url = "http://7-themes.com/data_images/out/35/6889756-black-backgrounds.jpg";
+			TransparencyInPercent = 100;
+		}
+	}
+
+	public sealed class BackgroundImageSettings : ImageSettings
+	{
+		public bool Enabled { get; set; }
+
+		public BackgroundImageSettings()
+		{
+			Enabled = false;
 		}
 	}
 
@@ -694,6 +826,7 @@ namespace ServerInfo
 		public int ActiveTabIndex { get; set; }
 		public int PageIndex { get; set; }
 		public bool InfoShownOnLogin { get; set; }
+		public string ActiveTabContentPanelName { get; set; }
 	}
 }
 
