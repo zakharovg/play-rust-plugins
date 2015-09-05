@@ -462,8 +462,8 @@ namespace Oxide.Plugins
 				Text =
 				{
 					Text = helpTab.ButtonText,
-					FontSize = 18,
-					Align = TextAnchor.MiddleCenter
+					FontSize = helpTab.TabButtonFontSize,
+					Align = helpTab.TabButtonAnchor
 				}
 			};
 		}
@@ -630,8 +630,10 @@ namespace ServerInfo
 			Pages = new List<HelpTabPage>();
 			TextFontSize = 16;
 			HeaderFontSize = 32;
+			TabButtonFontSize = 16;
 			TextAnchor = TextAnchor.MiddleLeft;
 			HeaderAnchor = TextAnchor.UpperLeft;
+			TabButtonAnchor = TextAnchor.MiddleCenter;
 			OxideGroup = string.Empty;
 		}
 
@@ -651,6 +653,9 @@ namespace ServerInfo
 		}
 
 		public List<HelpTabPage> Pages { get; set; }
+
+		public TextAnchor TabButtonAnchor { get; set; }
+		public int TabButtonFontSize { get; set; }
 
 		public TextAnchor HeaderAnchor { get; set; }
 		public int HeaderFontSize { get; set; }
