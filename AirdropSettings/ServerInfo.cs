@@ -12,7 +12,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-	[Info("ServerInfo", "baton", "0.2.1", ResourceId = 1317)]
+	[Info("ServerInfo", "baton", "0.2.2", ResourceId = 1317)]
 	[Description("UI customizable server info with multiple tabs.")]
 	public sealed class ServerInfo : RustPlugin
 	{
@@ -250,6 +250,7 @@ namespace Oxide.Plugins
 				return tabContentPanelName;
 
 			var backgroundImage = CreateImage(tabContentPanelName, _settings.BackgroundImage);
+
 			container.Add(backgroundImage);
 
 			return tabContentPanelName;
@@ -261,8 +262,9 @@ namespace Oxide.Plugins
 			var image = new CuiRawImageComponent
 			{
 				Url = settings.Url,
-				Color = "1 1 1 " + Convert.ToSingle(settings.TransparencyInPercent / 100)
+				Color = string.Format("1 1 1 {0:F1}", (settings.TransparencyInPercent / 100.0f))
 			};
+
 			var position = settings.Position;
 			var rectTransform = new CuiRectTransformComponent
 			{
@@ -273,6 +275,7 @@ namespace Oxide.Plugins
 			element.Components.Add(rectTransform);
 			element.Name = CuiHelper.GetGuid();
 			element.Parent = panelName;
+
 			return element;
 		}
 
