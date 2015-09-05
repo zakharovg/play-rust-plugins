@@ -21,8 +21,6 @@ namespace Oxide.Plugins
 
 		private void OnServerInitialized()
 		{
-			PlayerActiveTabs.Clear();
-
 			LoadConfig();
 			var configFileName = Manager.ConfigPath + "/server_info_text.json";
 
@@ -32,6 +30,11 @@ namespace Oxide.Plugins
 			}
 			_settings = null;
 			_settings = Config.ReadObject<Settings>(configFileName);
+		}
+
+		private void OnUnload()
+		{
+			PlayerActiveTabs.Clear();
 		}
 
 		[ConsoleCommand("changetab")]
@@ -187,7 +190,7 @@ namespace Oxide.Plugins
 				.ToList();
 			if (allowedTabs.Count <= 0)
 			{
-				SendReply(player, "[GUI Help] You don't have allowed info to see.");
+				SendReply(player, "[GUI Help] You don't have permissions to see info.");
 				return;
 			}
 			var activeAllowedTab = allowedTabs[tabToSelectIndex];
@@ -430,14 +433,14 @@ namespace Oxide.Plugins
 			Color activeButtonColor;
 			Color.TryParseHexString(_settings.ActiveButtonColor, out activeButtonColor);
 
-			CuiButton activeHelpTabButton = CreateTabButton(activeTabIndex, activeTab, activeButtonColor);
-			string activeTabButtonName = container.Add(activeHelpTabButton, mainPanelName);
+			var activeHelpTabButton = CreateTabButton(activeTabIndex, activeTab, activeButtonColor);
+			var activeTabButtonName = container.Add(activeHelpTabButton, mainPanelName);
 
-			CuiElement activeTabButtonCuiElement =
+			var activeTabButtonCuiElement =
 				container.First(i => i.Name.Equals(activeTabButtonName, StringComparison.OrdinalIgnoreCase));
-			CuiButtonComponent activeTabButton = activeTabButtonCuiElement.Components.OfType<CuiButtonComponent>().First();
+			var activeTabButton = activeTabButtonCuiElement.Components.OfType<CuiButtonComponent>().First();
 
-			string command = string.Format("changeTab {0}", activeTabIndex);
+			var command = string.Format("changeTab {0}", activeTabIndex);
 			activeTabButton.Command = command;
 
 			return activeTabButtonName;
