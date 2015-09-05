@@ -154,11 +154,11 @@ namespace Oxide.Plugins
 
 			if (state == null)
 			{
-				
+
 				state = new PlayerInfoState(_settings);
 				PlayerActiveTabs.Add(player.userID, state);
 			}
-			
+
 			if (!state.InfoShownOnLogin)
 				return;
 
@@ -241,7 +241,10 @@ namespace Oxide.Plugins
 			const float firstLineMargin = 0.91f;
 			const float textLineHeight = 0.04f;
 
-			var currentPage = helpTab.Pages[pageIndex];
+			var currentPage = helpTab.Pages.ElementAtOrDefault(pageIndex);
+			if (currentPage == null)
+				return tabContentPanelName;
+
 			for (var textRow = 0; textRow < currentPage.TextLines.Count; textRow++)
 			{
 				var textLine = currentPage.TextLines[textRow];
@@ -294,7 +297,7 @@ namespace Oxide.Plugins
 				{
 					Align = helpTab.HeaderAnchor,
 					FontSize = helpTab.HeaderFontSize,
-					Text = helpTab.Name
+					Text = helpTab.HeaderText
 				}
 			};
 		}
@@ -332,8 +335,8 @@ namespace Oxide.Plugins
 			{
 				RectTransform =
 				{
-					AnchorMin = "0.01 " + (firstLineMargin - textLineHeight*(textRow + 1)),
-					AnchorMax = "0.85 " + (firstLineMargin - textLineHeight*textRow)
+					AnchorMin = "0.01 " + (firstLineMargin - textLineHeight * (textRow + 1)),
+					AnchorMax = "0.85 " + (firstLineMargin - textLineHeight * textRow)
 				},
 				Text =
 				{
@@ -458,7 +461,7 @@ namespace Oxide.Plugins
 				},
 				Text =
 				{
-					Text = helpTab.Name,
+					Text = helpTab.ButtonText,
 					FontSize = 18,
 					Align = TextAnchor.MiddleCenter
 				}
@@ -504,7 +507,8 @@ namespace ServerInfo
 			var settings = new Settings();
 			settings.Tabs.Add(new HelpTab
 			{
-				Name = "First Tab",
+				ButtonText = "First Tab",
+				HeaderText = "First Tab",
 				Pages =
 				{
 					new HelpTabPage
@@ -548,7 +552,8 @@ namespace ServerInfo
 			});
 			settings.Tabs.Add(new HelpTab
 			{
-				Name = "Second Tab",
+				ButtonText = "Second Tab",
+				HeaderText = "Second Tab",
 				Pages =
 				{
 					new HelpTabPage
@@ -566,7 +571,8 @@ namespace ServerInfo
 			});
 			settings.Tabs.Add(new HelpTab
 			{
-				Name = "Third Tab",
+				ButtonText = "Third Tab",
+				HeaderText = "Third Tab",
 				Pages =
 				{
 					new HelpTabPage
@@ -614,9 +620,13 @@ namespace ServerInfo
 
 	public sealed class HelpTab
 	{
+		private string _headerText;
+		private string _buttonText;
+
 		public HelpTab()
 		{
-			Name = "Default ServerInfo Help Tab";
+			ButtonText = "Default ServerInfo Help Tab";
+			HeaderText = "Default ServerInfo Help";
 			Pages = new List<HelpTabPage>();
 			TextFontSize = 16;
 			HeaderFontSize = 32;
@@ -625,7 +635,21 @@ namespace ServerInfo
 			OxideGroup = string.Empty;
 		}
 
-		public string Name { get; set; }
+		public string ButtonText
+		{
+			get { return string.IsNullOrEmpty(_buttonText) ? _headerText : _buttonText; }
+			set { _buttonText = value; }
+		}
+
+		public string HeaderText
+		{
+			get
+			{
+				return string.IsNullOrEmpty(_headerText) ? _buttonText : _headerText;
+			}
+			set { _headerText = value; }
+		}
+
 		public List<HelpTabPage> Pages { get; set; }
 
 		public TextAnchor HeaderAnchor { get; set; }
