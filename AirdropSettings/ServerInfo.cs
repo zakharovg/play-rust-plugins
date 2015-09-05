@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using Newtonsoft.Json;
 using Oxide.Core;
 using Oxide.Core.Libraries;
 using Oxide.Game.Rust.Cui;
@@ -81,7 +82,7 @@ namespace Oxide.Plugins
 
 			PlayerActiveTabs[player.userID].ActiveTabContentPanelName = tabContentPanelName;
 
-			CuiHelper.AddUi(player, container);
+			SendUI(player, container);
 		}
 
 		[ConsoleCommand("changepage")]
@@ -117,7 +118,7 @@ namespace Oxide.Plugins
 			var tabContentPanelName = CreateTabContent(currentTab, container, mainPanelName, pageToChangeTo);
 			PlayerActiveTabs[player.userID].ActiveTabContentPanelName = tabContentPanelName;
 
-			CuiHelper.AddUi(player, container);
+			SendUI(player, container);
 		}
 
 		[ConsoleCommand("infoclose")]
@@ -208,8 +209,22 @@ namespace Oxide.Plugins
 				AddNonActiveButton(tabIndex, container, allowedTabs[tabIndex], mainPanelName, activeTabButtonName);
 			}
 			PlayerActiveTabs[player.userID].ActiveTabContentPanelName = tabContentPanelName;
-			Puts("info tab panel name:{0}", PlayerActiveTabs[player.userID].ActiveTabContentPanelName);
-			CommunityEntity.ServerInstance.ClientRPCEx(new Network.SendInfo { connection = player.net.connection }, null, "AddUI", CuiHelper.ToJson(container, true));
+			SendUI(player, container);
+		}
+
+		private static void SendUI(BasePlayer player, CuiElementContainer container)
+		{
+			var json = JsonConvert.SerializeObject(container, Formatting.None, new JsonSerializerSettings
+			{
+				StringEscapeHandling = StringEscapeHandling.Default,
+				DefaultValueHandling = DefaultValueHandling.Ignore,
+				Formatting = Formatting.Indented
+			});
+			json = json.Replace(@"\t", "\t");
+			json = json.Replace(@"\n", "\n");
+
+			CommunityEntity.ServerInstance.ClientRPCEx(new Network.SendInfo { connection = player.net.connection }, null, "AddUI",
+				json);
 		}
 
 		private static string AddMainPanel(CuiElementContainer container)
