@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-	[Info("ServerInfo", "baton", "0.1.7", ResourceId = 1317)]
+	[Info("ServerInfo", "baton", "0.2.1", ResourceId = 1317)]
 	[Description("UI customizable server info with multiple tabs.")]
 	public sealed class ServerInfo : RustPlugin
 	{
@@ -230,7 +230,43 @@ namespace Oxide.Plugins
 		{
 			Color backgroundColor;
 			Color.TryParseHexString(_settings.BackgroundColor, out backgroundColor);
-			var tabContentPanelName = container.Add(new CuiPanel
+			var tabContentPanelName = CreateTabContentPanel(container, mainPanelName, backgroundColor);
+
+			var cuiLabel = CreateHeaderLabel(helpTab);
+			container.Add(cuiLabel, tabContentPanelName);
+
+			var closeButton = CreateCloseButton(mainPanelName, _settings.CloseButtonColor);
+			container.Add(closeButton, tabContentPanelName);
+
+			const float firstLineMargin = 0.91f;
+			const float textLineHeight = 0.04f;
+
+			var currentPage = helpTab.Pages[pageIndex];
+			for (var textRow = 0; textRow < currentPage.TextLines.Count; textRow++)
+			{
+				var textLine = currentPage.TextLines[textRow];
+				var textLineLabel = CreateTextLineLabel(helpTab, firstLineMargin, textLineHeight, textRow, textLine);
+				container.Add(textLineLabel, tabContentPanelName);
+			}
+
+			if (pageIndex > 0)
+			{
+				var prevPageButton = CreatePrevPageButton(mainPanelName, pageIndex, tabContentPanelName, _settings.PrevPageButtonColor);
+				container.Add(prevPageButton, tabContentPanelName);
+			}
+
+			if (helpTab.Pages.Count - 1 == pageIndex)
+				return tabContentPanelName;
+
+			var nextPageButton = CreateNextPageButton(mainPanelName, pageIndex, tabContentPanelName, _settings.NextPageButtonColor);
+			container.Add(nextPageButton, tabContentPanelName);
+
+			return tabContentPanelName;
+		}
+
+		private static string CreateTabContentPanel(CuiElementContainer container, string mainPanelName, Color backgroundColor)
+		{
+			return container.Add(new CuiPanel
 			{
 				CursorEnabled = false,
 				Image =
@@ -243,8 +279,11 @@ namespace Oxide.Plugins
 					AnchorMax = "0.99 0.98"
 				}
 			}, mainPanelName);
+		}
 
-			var cuiLabel = new CuiLabel
+		private static CuiLabel CreateHeaderLabel(HelpTab helpTab)
+		{
+			return new CuiLabel
 			{
 				RectTransform =
 				{
@@ -258,17 +297,19 @@ namespace Oxide.Plugins
 					Text = helpTab.Name
 				}
 			};
-			container.Add(cuiLabel, tabContentPanelName);
+		}
 
-			Color closeButtonColor;
-			Color.TryParseHexString(_settings.CloseButtonColor, out closeButtonColor);
-			var closeButton = new CuiButton
+		private static CuiButton CreateCloseButton(string mainPanelName, string hexColor)
+		{
+			Color color;
+			Color.TryParseHexString(hexColor, out color);
+			return new CuiButton
 			{
 				Button =
 				{
 					Command = string.Format("infoclose {0}", mainPanelName),
 					Close = mainPanelName,
-					Color = closeButtonColor.ToRustFormatString()
+					Color = color.ToRustFormatString()
 				},
 				RectTransform =
 				{
@@ -282,65 +323,63 @@ namespace Oxide.Plugins
 					Align = TextAnchor.MiddleCenter
 				}
 			};
-			container.Add(closeButton, tabContentPanelName);
+		}
 
-			const float firstLineMargin = 0.91f;
-			const float textLineHeight = 0.04f;
-
-			var currentPage = helpTab.Pages[pageIndex];
-			for (var textRow = 0; textRow < currentPage.TextLines.Count; textRow++)
+		private static CuiLabel CreateTextLineLabel(HelpTab helpTab, float firstLineMargin, float textLineHeight, int textRow,
+			string textLine)
+		{
+			var textLineLabel = new CuiLabel
 			{
-				var textLine = currentPage.TextLines[textRow];
-				var textLineLabel = new CuiLabel
+				RectTransform =
 				{
-					RectTransform =
-					{
-						AnchorMin = "0.01 " + (firstLineMargin - textLineHeight * (textRow + 1)),
-						AnchorMax = "0.85 " + (firstLineMargin - textLineHeight * textRow)
-					},
-					Text =
-					{
-						Align = helpTab.TextAnchor,
-						FontSize = helpTab.TextFontSize,
-						Text = textLine
-					}
-				};
-				container.Add(textLineLabel, tabContentPanelName);
-			}
+					AnchorMin = "0.01 " + (firstLineMargin - textLineHeight*(textRow + 1)),
+					AnchorMax = "0.85 " + (firstLineMargin - textLineHeight*textRow)
+				},
+				Text =
+				{
+					Align = helpTab.TextAnchor,
+					FontSize = helpTab.TextFontSize,
+					Text = textLine
+				}
+			};
+			return textLineLabel;
+		}
 
-			if (pageIndex > 0)
+		private static CuiButton CreatePrevPageButton(string mainPanelName, int pageIndex, string tabContentPanelName, string hexColor)
+		{
+			Color color;
+			Color.TryParseHexString(hexColor, out color);
+			return new CuiButton
 			{
-				var prevPageButton = new CuiButton
+				Button =
 				{
-					Button =
-					{
-						Command = string.Format("changepage {0} {1} {2}", pageIndex - 1, tabContentPanelName, mainPanelName),
-						Color = closeButtonColor.ToRustFormatString()
-					},
-					RectTransform =
-					{
-						AnchorMin = "0.86 0.01",
-						AnchorMax = "0.97 0.07"
-					},
-					Text =
-					{
-						Text = "Prev Page",
-						FontSize = 18,
-						Align = TextAnchor.MiddleCenter
-					}
-				};
-				container.Add(prevPageButton, tabContentPanelName);
-			}
+					Command = string.Format("changepage {0} {1} {2}", pageIndex - 1, tabContentPanelName, mainPanelName),
+					Color = color.ToRustFormatString()
+				},
+				RectTransform =
+				{
+					AnchorMin = "0.86 0.01",
+					AnchorMax = "0.97 0.07"
+				},
+				Text =
+				{
+					Text = "Prev Page",
+					FontSize = 18,
+					Align = TextAnchor.MiddleCenter
+				}
+			};
+		}
 
-			if (helpTab.Pages.Count - 1 == pageIndex)
-				return tabContentPanelName;
-
-			var nextPageButton = new CuiButton
+		private static CuiButton CreateNextPageButton(string mainPanelName, int pageIndex, string tabContentPanelName, string hexColor)
+		{
+			Color color;
+			Color.TryParseHexString(hexColor, out color);
+			return new CuiButton
 			{
 				Button =
 				{
 					Command = string.Format("changepage {0} {1} {2}", pageIndex + 1, tabContentPanelName, mainPanelName),
-					Color = closeButtonColor.ToRustFormatString()
+					Color = color.ToRustFormatString()
 				},
 				RectTransform =
 				{
@@ -354,9 +393,6 @@ namespace Oxide.Plugins
 					Align = TextAnchor.MiddleCenter
 				}
 			};
-			container.Add(nextPageButton, tabContentPanelName);
-
-			return tabContentPanelName;
 		}
 
 		private static void AddNonActiveButton(
@@ -445,6 +481,8 @@ namespace ServerInfo
 			ActiveButtonColor = "#" + Color.cyan.ToHexStringRGBA();
 			InactiveButtonColor = "#" + Color.gray.ToHexStringRGBA();
 			CloseButtonColor = "#" + Color.gray.ToHexStringRGBA();
+			PrevPageButtonColor = "#" + Color.gray.ToHexStringRGBA();
+			NextPageButtonColor = "#" + Color.gray.ToHexStringRGBA();
 			BackgroundColor = "#" + new Color(0.1f, 0.1f, 0.1f, 1f).ToHexStringRGBA();
 		}
 
@@ -457,6 +495,8 @@ namespace ServerInfo
 		public string ActiveButtonColor { get; set; }
 		public string InactiveButtonColor { get; set; }
 		public string CloseButtonColor { get; set; }
+		public string NextPageButtonColor { get; set; }
+		public string PrevPageButtonColor { get; set; }
 		public string BackgroundColor { get; set; }
 
 		public static Settings CreateDefault()
