@@ -231,9 +231,7 @@ namespace Oxide.Plugins
 
 		private string CreateTabContent(HelpTab helpTab, CuiElementContainer container, string mainPanelName, int pageIndex = 0)
 		{
-			Color backgroundColor;
-			Color.TryParseHexString(_settings.BackgroundColor, out backgroundColor);
-			var tabContentPanelName = CreateTabContentPanel(container, mainPanelName, backgroundColor);
+			var tabContentPanelName = CreateTabContentPanel(container, mainPanelName, _settings.BackgroundColor);
 
 			var cuiLabel = CreateHeaderLabel(helpTab);
 			container.Add(cuiLabel, tabContentPanelName);
@@ -270,8 +268,11 @@ namespace Oxide.Plugins
 			return tabContentPanelName;
 		}
 
-		private static string CreateTabContentPanel(CuiElementContainer container, string mainPanelName, Color backgroundColor)
+		private static string CreateTabContentPanel(CuiElementContainer container, string mainPanelName, string hexColor)
 		{
+			Color backgroundColor;
+			Color.TryParseHexString(hexColor, out backgroundColor);
+
 			return container.Add(new CuiPanel
 			{
 				CursorEnabled = false,
