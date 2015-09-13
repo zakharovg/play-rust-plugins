@@ -108,7 +108,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AirdropExtended.cs" />
-    <Compile Include="ClanswithKickDefined.cs" />
+    <Compile Include="Clans.cs" />
+    <Compile Include="ClansUI.cs" />
     <Compile Include="EconomicsVip.cs" />
     <Compile Include="HowIDied.cs" />
     <Compile Include="PrintItemNames.cs" />
@@ -123,7 +124,9 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>xcopy /Y $(ProjectDir)AirdropExtended.cs H:\steam\rust_server_copy\server\my_server_identity\oxide\plugins
-xcopy /Y $(ProjectDir)ServerInfo.cs H:\steam\rust_server_copy\server\my_server_identity\oxide\plugins</PostBuildEvent>
+xcopy /Y $(ProjectDir)ServerInfo.cs H:\steam\rust_server_copy\server\my_server_identity\oxide\plugins
+xcopy /Y $(ProjectDir)ClansUI.cs H:\steam\rust_server_copy\server\my_server_identity\oxide\plugins
+xcopy /Y $(ProjectDir)Clans.cs H:\steam\rust_server_copy\server\my_server_identity\oxide\plugins</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
