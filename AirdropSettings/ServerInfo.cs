@@ -12,7 +12,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-	[Info("ServerInfo", "baton", "0.2.2", ResourceId = 1317)]
+	[Info("ServerInfo", "baton", "0.3.1", ResourceId = 1317)]
 	[Description("UI customizable server info with multiple tabs.")]
 	public sealed class ServerInfo : RustPlugin
 	{
@@ -43,10 +43,18 @@ namespace Oxide.Plugins
 
 			if (!_settings.UpgradedConfig && Config.Exists(configFileName))
 			{
-				Puts("Upgrading settings from server_info_text.json");
-				_settings = Config.ReadObject<Settings>(configFileName);
-				_settings.UpgradedConfig = true;
-				Puts("Successfully upgraded config");
+				try
+				{
+					Puts("Upgrading settings from server_info_text.json");
+					_settings = Config.ReadObject<Settings>(configFileName);
+					_settings.UpgradedConfig = true;
+					Puts("Successfully upgraded config");
+				}
+				catch (Exception)
+				{
+					Puts("Failed to upgrade config. Manual editing is required.");
+					Puts("Copy your settings by parts to new config in ServerInfo.json");
+				}
 			}
 
 			foreach (var player in BasePlayer.activePlayerList)
@@ -209,6 +217,9 @@ namespace Oxide.Plugins
 
 		private static void AddHelpButton(BasePlayer player)
 		{
+			if (!_settings.HelpButton.IsEnabled)
+				return;
+			
 			var container = new CuiElementContainer();
 			var helpChatButton = CreateHelpButton();
 			var helpButtonName = container.Add(helpChatButton);
@@ -940,6 +951,7 @@ namespace ServerInfo
 
 	public sealed class HelpButtonSettings
 	{
+		public bool IsEnabled { get; set; }
 		public string Text { get; set; }
 		public Position Position { get; set; }
 		public string Color { get; set; }
@@ -947,6 +959,7 @@ namespace ServerInfo
 
 		public HelpButtonSettings()
 		{
+			IsEnabled = false;
 			Text = "Help";
 			Color = "#" + UnityEngine.Color.gray.ToHexStringRGBA();
 			FontSize = 18;
