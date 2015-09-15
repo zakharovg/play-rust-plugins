@@ -12,7 +12,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-	[Info("ServerInfo", "baton", "0.3.2", ResourceId = 1317)]
+	[Info("ServerInfo", "baton", "0.3.3", ResourceId = 1317)]
 	[Description("UI customizable server info with multiple tabs.")]
 	public sealed class ServerInfo : RustPlugin
 	{
@@ -500,8 +500,8 @@ namespace Oxide.Plugins
 				},
 				RectTransform =
 				{
-					AnchorMin = "0.26 0.10",
-					AnchorMax = "0.32 0.14"
+					AnchorMin = _settings.HelpButton.Position.GetRectTransformAnchorMin(),
+					AnchorMax = _settings.HelpButton.Position.GetRectTransformAnchorMax()
 				},
 				Text =
 				{
