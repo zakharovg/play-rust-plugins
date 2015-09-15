@@ -244,6 +244,12 @@ namespace Oxide.Plugins
 			_commands["aire.drop"].ExecuteFromChat(player, command, args);
 		}
 
+		[ChatCommand("aire.massdrop")]
+		private void CallMassDropChatCommand(BasePlayer player, string command, string[] args)
+		{
+			_commands["aire.massdrop"].ExecuteFromChat(player, command, args);
+		}
+
 		[ChatCommand("aire.topos")]
 		private void CallDropToPosChatCommand(BasePlayer player, string command, string[] args)
 		{
