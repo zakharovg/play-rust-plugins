@@ -12,7 +12,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-	[Info("ServerInfo", "baton", "0.3.1", ResourceId = 1317)]
+	[Info("ServerInfo", "baton", "0.3.2", ResourceId = 1317)]
 	[Description("UI customizable server info with multiple tabs.")]
 	public sealed class ServerInfo : RustPlugin
 	{
@@ -40,6 +40,8 @@ namespace Oxide.Plugins
 			{
 				_settings = Settings.CreateDefault();
 			}
+
+			_settings = _settings ?? Settings.CreateDefault();
 
 			if (!_settings.UpgradedConfig && Config.Exists(configFileName))
 			{
@@ -964,7 +966,7 @@ namespace ServerInfo
 			Color = "#" + UnityEngine.Color.gray.ToHexStringRGBA();
 			FontSize = 18;
 
-			Position = new Position { MinX = 0.26f, MaxX = 0.32f, MinY = 0.10f, MaxY = 0.14f };
+			Position = new Position { MinX = 0.00f, MaxX = 0.05f, MinY = 0.10f, MaxY = 0.14f };
 		}
 	}
 
