@@ -1002,6 +1002,7 @@ namespace Oxide.Plugins
 			if (clan.members.Contains(userId))
 				return false;
 
+			clan.members.Add(userId);
 			SaveData();
 			lookup[userId] = clan;
 			SetupPlayer(player);

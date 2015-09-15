@@ -30,7 +30,7 @@ using Timer = Oxide.Core.Libraries.Timer;
 
 namespace Oxide.Plugins
 {
-	[Info(Constants.PluginName, "baton", "0.8.7", ResourceId = 1210)]
+	[Info(Constants.PluginName, "baton", "0.8.8", ResourceId = 1210)]
 	[Description("Customizable airdrop")]
 	public class AirdropExtended : RustPlugin
 	{
@@ -1651,6 +1651,32 @@ namespace AirdropExtended.Commands
 		}
 	}
 
+	public class CallMassDropCommand : AirdropExtendedCommand
+	{
+		private readonly SettingsContext _context;
+
+		public CallMassDropCommand(SettingsContext context)
+			: base("aire.massdrop", "aire.canMassDrop")
+		{
+			if (context == null) throw new ArgumentNullException("context");
+			_context = context;
+		}
+
+		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		{
+			var planeCount = arg.GetInt(0, 3);
+
+			Diagnostics.Diagnostics.MessageToServerAndPlayer(player, "Calling mass drop, number of planes:{0}", planeCount);
+			for (int i = 0; i < planeCount; i++)
+				AirdropService.CallRandomDrop(_context.Settings.DropLocation);
+		}
+
+		protected override string GetUsageString()
+		{
+			return GetDefaultUsageString("3");
+		}
+	}
+
 	public class CallToPosCommand : AirdropExtendedCommand
 	{
 		private static readonly string[] UsageStrings = { "aire.topos x z", "aire.topos x;z", "aire.topos x,z" };
@@ -1957,9 +1983,9 @@ namespace AirdropExtended.Commands
 				var itemName = item.info.displayName.english;
 				Diagnostics.Diagnostics.MessageToServerAndPlayer(
 					player,
-					"Item: |{0,20}|, bp: {1}, count: {2}", 
-					itemName.Substring(0, Math.Min(itemName.Length, 18)), 
-					item.HasFlag(Item.Flag.Blueprint), 
+					"Item: |{0,20}|, bp: {1}, count: {2}",
+					itemName.Substring(0, Math.Min(itemName.Length, 18)),
+					item.HasFlag(Item.Flag.Blueprint),
 					item.amount);
 			}
 			Diagnostics.Diagnostics.MessageToServerAndPlayer(player, "================================================");
@@ -2004,6 +2030,7 @@ namespace AirdropExtended.Commands
 					new SetItemGroupSettingsCommand(context, controller),
 					new SetAirdropCapacityCommand(context, controller),
 					new CallRandomDropCommand(context),
+					new CallMassDropCommand(context),
 					new CallToPosCommand(),
 					new CallToPlayerCommand(),
 					new CallToMeCommand(),
@@ -3368,16 +3395,16 @@ namespace AirdropExtended.Airdrop.Settings.Generate
 							{
 								Func<ItemDefinition, int[]> amountFunc;
 								DefaultAmountByCategoryMapping.TryGetValue(categoryName, out amountFunc);
-								var amountMappingArray = amountFunc == null 
+								var amountMappingArray = amountFunc == null
 									? new[] { 0, 0 }
 									: amountFunc(itemDefinition);
 
 								var chanceInPercent = ItemManager.bpList.Any(bp =>
 										bp.targetItem.shortname.Equals(itemDefinition.shortname, StringComparison.OrdinalIgnoreCase) &&
-										bp.defaultBlueprint) 
-									? 0.0f 
+										bp.defaultBlueprint)
+									? 0.0f
 									: CalculateChanceByRarity(itemDefinition.rarity);
-								
+
 								return new AirdropItem
 								{
 									ChanceInPercent = chanceInPercent,
