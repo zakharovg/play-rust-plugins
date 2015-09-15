@@ -20,21 +20,54 @@ namespace Oxide.Plugins
 		private static readonly Dictionary<ulong, PlayerInfoState> PlayerActiveTabs = new Dictionary<ulong, PlayerInfoState>();
 		private static readonly Permission Permission = Interface.GetMod().GetLibrary<Permission>();
 
+		protected override void LoadDefaultConfig()
+		{
+			Config.Set("settings", Settings.CreateDefault());
+		}
+
 		private void OnServerInitialized()
 		{
 			LoadConfig();
 			var configFileName = Manager.ConfigPath + "/server_info_text.json";
 
-			if (!Config.Exists(configFileName))
-			{
-				Config.WriteObject(Settings.CreateDefault(), false, configFileName);
-			}
 			_settings = null;
-			_settings = Config.ReadObject<Settings>(configFileName);
+			try
+			{
+				var settingsDict = Config.Get("settings") as Dictionary<string, object>;
+				_settings = JsonConvert.DeserializeObject<Settings>(JsonConvert.SerializeObject(settingsDict));
+			}
+			catch (Exception)
+			{
+				_settings = Settings.CreateDefault();
+			}
+
+			if (!_settings.UpgradedConfig && Config.Exists(configFileName))
+			{
+				Puts("Upgrading settings from server_info_text.json");
+				_settings = Config.ReadObject<Settings>(configFileName);
+				_settings.UpgradedConfig = true;
+				Puts("Successfully upgraded config");
+			}
+
+			foreach (var player in BasePlayer.activePlayerList)
+				AddHelpButton(player);
+
+			Config.Set("settings", _settings);
+			SaveConfig();
 		}
 
-		private void OnUnload()
+		void Unload()
 		{
+			foreach (var playerActiveTab in PlayerActiveTabs)
+			{
+				var player = BasePlayer.activePlayerList.FirstOrDefault(f => f.userID == playerActiveTab.Key);
+				if (player == null)
+					continue;
+
+				CuiHelper.DestroyUi(player, playerActiveTab.Value.MainPanelName);
+				CuiHelper.DestroyUi(player, playerActiveTab.Value.ChatHelpButtonName);
+			}
+
 			PlayerActiveTabs.Clear();
 		}
 
@@ -103,7 +136,6 @@ namespace Oxide.Plugins
 			var currentPageIndex = playerInfoState.PageIndex;
 
 			var pageToChangeTo = arg.GetInt(0, 65535);
-			Puts("current tab panel name:{0}", playerInfoState.ActiveTabContentPanelName);
 			var currentTabContentPanelName = playerInfoState.ActiveTabContentPanelName;
 			var mainPanelName = arg.GetString(1);
 
@@ -135,7 +167,7 @@ namespace Oxide.Plugins
 				return;
 
 			const string defaultName = "defaultString";
-			string mainPanelName = arg.GetString(0, defaultName);
+			var mainPanelName = arg.GetString(0, defaultName);
 
 			if (mainPanelName.Equals(defaultName, StringComparison.OrdinalIgnoreCase))
 				return;
@@ -146,6 +178,7 @@ namespace Oxide.Plugins
 				return;
 
 			state.ActiveTabIndex = _settings.TabToOpenByDefault;
+			state.MainPanelName = string.Empty;
 			state.PageIndex = 0;
 
 			CuiHelper.DestroyUi(player, mainPanelName);
@@ -153,7 +186,7 @@ namespace Oxide.Plugins
 
 		private void OnPlayerInit(BasePlayer player)
 		{
-			if (player == null || !_settings.ShowInfoOnPlayerInit)
+			if (player == null || _settings == null || !_settings.ShowInfoOnPlayerInit)
 				return;
 
 			PlayerInfoState state;
@@ -166,10 +199,37 @@ namespace Oxide.Plugins
 				PlayerActiveTabs.Add(player.userID, state);
 			}
 
+			AddHelpButton(player);
+
 			if (!state.InfoShownOnLogin)
 				return;
 
 			ShowInfo(player, string.Empty, new string[0]);
+		}
+
+		private static void AddHelpButton(BasePlayer player)
+		{
+			var container = new CuiElementContainer();
+			var helpChatButton = CreateHelpButton();
+			var helpButtonName = container.Add(helpChatButton);
+			if (!PlayerActiveTabs.ContainsKey(player.userID))
+				PlayerActiveTabs[player.userID] = new PlayerInfoState(_settings);
+
+			PlayerActiveTabs[player.userID].ChatHelpButtonName = helpButtonName;
+			CuiHelper.AddUi(player, container);
+		}
+
+		[ConsoleCommand("info")]
+		private void ShowConsoleInfo(ConsoleSystem.Arg arg)
+		{
+			if (arg == null || arg.connection == null || arg.connection.player == null)
+				return;
+
+			var player = arg.connection.player as BasePlayer;
+			if (player == null)
+				return;
+			if (string.IsNullOrEmpty(PlayerActiveTabs[player.userID].MainPanelName))
+				ShowInfo(player, string.Empty, null);
 		}
 
 		[ChatCommand("info")]
@@ -182,8 +242,8 @@ namespace Oxide.Plugins
 				PlayerActiveTabs.Add(player.userID, new PlayerInfoState(_settings));
 
 			var container = new CuiElementContainer();
-			string mainPanelName = AddMainPanel(container);
-			//Add tab buttons
+			var mainPanelName = AddMainPanel(container);
+			PlayerActiveTabs[player.userID].MainPanelName = mainPanelName;
 
 			var tabToSelectIndex = _settings.TabToOpenByDefault;
 			var allowedTabs = _settings.Tabs
@@ -414,6 +474,31 @@ namespace Oxide.Plugins
 			};
 		}
 
+		private static CuiButton CreateHelpButton()
+		{
+			Color color;
+			Color.TryParseHexString(_settings.HelpButton.Color, out color);
+			return new CuiButton
+			{
+				Button =
+				{
+					Command = "info",
+					Color = color.ToRustFormatString()
+				},
+				RectTransform =
+				{
+					AnchorMin = "0.26 0.10",
+					AnchorMax = "0.32 0.14"
+				},
+				Text =
+				{
+					Text = _settings.HelpButton.Text,
+					FontSize = _settings.HelpButton.FontSize,
+					Align = TextAnchor.MiddleCenter
+				}
+			};
+		}
+
 		private static CuiLabel CreateTextLineLabel(HelpTab helpTab, float firstLineMargin, float textLineHeight, int textRow,
 			string textLine)
 		{
@@ -556,6 +641,7 @@ namespace Oxide.Plugins
 
 namespace ServerInfo
 {
+	[JsonObject]
 	public sealed class Settings
 	{
 		public Settings()
@@ -571,6 +657,7 @@ namespace ServerInfo
 			PrevPageButtonColor = "#" + Color.gray.ToHexStringRGBA();
 			NextPageButtonColor = "#" + Color.gray.ToHexStringRGBA();
 			BackgroundColor = "#" + new Color(0f, 0f, 0f, 1.0f).ToHexStringRGBA();
+			HelpButton = new HelpButtonSettings();
 
 			BackgroundImage = new BackgroundImageSettings();
 		}
@@ -589,10 +676,14 @@ namespace ServerInfo
 		public string PrevPageButtonColor { get; set; }
 		public string BackgroundColor { get; set; }
 
+		public HelpButtonSettings HelpButton { get; set; }
+
+		public bool UpgradedConfig { get; set; }
+
 		public static Settings CreateDefault()
 		{
 			var settings = new Settings();
-			settings.Tabs.Add(new HelpTab
+			var firstTab = new HelpTab
 			{
 				ButtonText = "First Tab",
 				HeaderText = "First Tab",
@@ -611,36 +702,48 @@ namespace ServerInfo
 						},
 						ImageSettings =
 						{
-							new ImageSettings 
+							new ImageSettings
 							{
 								Position = new Position
-									{
-										MinX = 0, MaxX = 0.5f, MinY = 0, MaxY = 0.5f
-									},
+								{
+									MinX = 0,
+									MaxX = 0.5f,
+									MinY = 0,
+									MaxY = 0.5f
+								},
 								Url = "http://th04.deviantart.net/fs70/PRE/f/2012/223/4/4/rust_logo_by_furrypigdog-d5aqi3r.png"
 							},
-							new ImageSettings 
+							new ImageSettings
 							{
 								Position = new Position
-									{
-										MinX = 0.5f, MaxX = 1f, MinY = 0, MaxY = 0.5f
-									},
+								{
+									MinX = 0.5f,
+									MaxX = 1f,
+									MinY = 0,
+									MaxY = 0.5f
+								},
 								Url = "http://files.enjin.com/176331/IMGS/LOGO_RUST1.fw.png"
 							},
-							new ImageSettings 
+							new ImageSettings
 							{
 								Position = new Position
-									{
-										MinX = 0, MaxX = 0.5f, MinY = 0.5f, MaxY = 1f
-									},
+								{
+									MinX = 0,
+									MaxX = 0.5f,
+									MinY = 0.5f,
+									MaxY = 1f
+								},
 								Url = "http://files.enjin.com/176331/IMGS/LOGO_RUST1.fw.png"
 							},
-							new ImageSettings 
+							new ImageSettings
 							{
 								Position = new Position
-									{
-										MinX = 0.5f, MaxX = 1f, MinY = 0.5f, MaxY = 1f
-									},
+								{
+									MinX = 0.5f,
+									MaxX = 1f,
+									MinY = 0.5f,
+									MaxY = 1f
+								},
 								Url = "http://th04.deviantart.net/fs70/PRE/f/2012/223/4/4/rust_logo_by_furrypigdog-d5aqi3r.png"
 							},
 						}
@@ -671,8 +774,8 @@ namespace ServerInfo
 						}
 					}
 				}
-			});
-			settings.Tabs.Add(new HelpTab
+			};
+			var secondTab = new HelpTab
 			{
 				ButtonText = "Second Tab",
 				HeaderText = "Second Tab",
@@ -690,8 +793,8 @@ namespace ServerInfo
 						}
 					}
 				}
-			});
-			settings.Tabs.Add(new HelpTab
+			};
+			var thirdTab = new HelpTab
 			{
 				ButtonText = "Third Tab",
 				HeaderText = "Third Tab",
@@ -709,7 +812,12 @@ namespace ServerInfo
 						}
 					}
 				}
-			});
+			};
+
+			settings.Tabs.Add(firstTab);
+			settings.Tabs.Add(secondTab);
+			settings.Tabs.Add(thirdTab);
+
 			return settings;
 		}
 	}
@@ -830,6 +938,23 @@ namespace ServerInfo
 		}
 	}
 
+	public sealed class HelpButtonSettings
+	{
+		public string Text { get; set; }
+		public Position Position { get; set; }
+		public string Color { get; set; }
+		public int FontSize { get; set; }
+
+		public HelpButtonSettings()
+		{
+			Text = "Help";
+			Color = "#" + UnityEngine.Color.gray.ToHexStringRGBA();
+			FontSize = 18;
+
+			Position = new Position { MinX = 0.26f, MaxX = 0.32f, MinY = 0.10f, MaxY = 0.14f };
+		}
+	}
+
 	public sealed class PlayerInfoState
 	{
 		public PlayerInfoState(Settings settings)
@@ -839,12 +964,17 @@ namespace ServerInfo
 			ActiveTabIndex = settings.TabToOpenByDefault;
 			PageIndex = 0;
 			InfoShownOnLogin = settings.ShowInfoOnPlayerInit;
+			ActiveTabContentPanelName = string.Empty;
+			ChatHelpButtonName = string.Empty;
+			MainPanelName = string.Empty;
 		}
 
 		public int ActiveTabIndex { get; set; }
 		public int PageIndex { get; set; }
 		public bool InfoShownOnLogin { get; set; }
 		public string ActiveTabContentPanelName { get; set; }
+		public string ChatHelpButtonName { get; set; }
+		public string MainPanelName { get; set; }
 	}
 }
 
