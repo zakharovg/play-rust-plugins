@@ -196,7 +196,7 @@ namespace Oxide.Plugins
 
 		private void OnPlayerInit(BasePlayer player)
 		{
-			if (player == null || _settings == null || !_settings.ShowInfoOnPlayerInit)
+			if (player == null || _settings == null)
 				return;
 
 			PlayerInfoState state;
@@ -204,7 +204,6 @@ namespace Oxide.Plugins
 
 			if (state == null)
 			{
-
 				state = new PlayerInfoState(_settings);
 				PlayerActiveTabs.Add(player.userID, state);
 			}
