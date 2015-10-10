@@ -907,6 +907,8 @@ namespace Oxide.Plugins
 			public string tag;
 			public string description;
 			public string owner;
+            public string ChatColor { get; set; }
+
 			public List<string> moderators = new List<string>();
 			public List<string> members = new List<string>();
 			public List<string> invited = new List<string>();
@@ -955,6 +957,7 @@ namespace Oxide.Plugins
 				obj["tag"] = tag;
 				obj["description"] = description;
 				obj["owner"] = owner;
+                obj["chatcolor"] = ChatColor;
 				var jmoderators = new JArray();
 				foreach (var moderator in moderators)
 					jmoderators.Add(moderator);
