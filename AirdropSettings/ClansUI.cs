@@ -26,7 +26,7 @@ namespace Oxide.Plugins
 		private static List<ClanData> _clanDataList = new List<ClanData>();
 		private static int _tunaToCreateAClan = DefaultAmountOfTunaToCreateClan;
 		private static int _tunaToMakeSpawnPoint = DefaultAmountOfTunaToMakeSpawnPoint;
-		private static int TunaItemId;
+		private static int _tunaItemId;
 
 		[PluginReference] // ReSharper disable once UnassignedField.Compiler
 		// ReSharper disable once InconsistentNaming
@@ -45,7 +45,7 @@ namespace Oxide.Plugins
 
 			_tunaToCreateAClan = Config.Get<int>("TunaToCreateAClan");
 			_tunaToMakeSpawnPoint = Config.Get<int>("TunaToSpawnPoint");
-			TunaItemId = ItemManager.FindItemDefinition("can.tuna").itemid;
+			_tunaItemId = ItemManager.FindItemDefinition("can.tuna").itemid;
 		}
 
 		private void LoadData()
@@ -210,7 +210,7 @@ namespace Oxide.Plugins
 			}
 
 			ClanData clanData = _clanDataList.First(data => data.ClanTag.Equals(clanTag, StringComparison.Ordinal));
-			int amountOfTunaAtOnePlayer = player.inventory.GetAmount(TunaItemId);
+			int amountOfTunaAtOnePlayer = player.inventory.GetAmount(_tunaItemId);
 			if (amountOfTunaAtOnePlayer < _tunaToMakeSpawnPoint)
 			{
 				Diagnostics.MessageToPlayer(player, "You don't have enough tuna to create a spawn point. Required amount: {0}",
@@ -218,7 +218,7 @@ namespace Oxide.Plugins
 				return;
 			}
 
-			player.inventory.Take(null, TunaItemId, _tunaToMakeSpawnPoint);
+			player.inventory.Take(null, _tunaItemId, _tunaToMakeSpawnPoint);
 			clanData.SetVector(player.transform.position);
 
 			float x = player.transform.position.x;
@@ -287,7 +287,7 @@ namespace Oxide.Plugins
 				return;
 			}
 
-			int amountOfTunaAtOnePlayer = player.inventory.GetAmount(TunaItemId);
+			int amountOfTunaAtOnePlayer = player.inventory.GetAmount(_tunaItemId);
 			if (amountOfTunaAtOnePlayer < _tunaToCreateAClan)
 			{
 				Diagnostics.MessageToPlayer(player, "You don't have enough tuna to create a clan. Required amount: {0}",
@@ -295,7 +295,7 @@ namespace Oxide.Plugins
 				return;
 			}
 
-			player.inventory.Take(null, TunaItemId, _tunaToCreateAClan);
+			player.inventory.Take(null, _tunaItemId, _tunaToCreateAClan);
 
 			_clanDataList.Add(new ClanData {ClanTag = clanTag});
 			Diagnostics.MessageToPlayer(player, "Your clan has been added to clans front page");

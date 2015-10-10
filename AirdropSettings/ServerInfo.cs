@@ -1008,13 +1008,13 @@ namespace ServerInfo.Extensions
         public static string ToHexStringRGB(this Color col)
         {
             Color32 color = col;
-            return $"{color.r:X2}{color.g:X2}{color.b:X2}";
+			return string.Format("{0}{1}{2}{3}", color.r, color.g, color.b;
         }
 
         public static string ToHexStringRGBA(this Color col)
         {
             Color32 color = col;
-            return $"{color.r:X2}{color.g:X2}{color.b:X2}{color.a:X2}";
+	        return string.Format("{0}{1}{2}{3}", color.r, color.g, color.b, color.a);
         }
 
         public static bool TryParseHexString(string hexString, out Color color)
