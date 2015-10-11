@@ -30,7 +30,7 @@ using Timer = Oxide.Core.Libraries.Timer;
 
 namespace Oxide.Plugins
 {
-	[Info(Constants.PluginName, "baton", "0.8.9", ResourceId = 1210)]
+	[Info(Constants.PluginName, "baton", "0.8.10", ResourceId = 1210)]
 	[Description("Customizable airdrop")]
 	public class AirdropExtended : RustPlugin
 	{
@@ -92,7 +92,6 @@ namespace Oxide.Plugins
 		private void Unload()
 		{
 			_airdropController.Cleanup();
-			Save();
 		}
 
 		void OnPlayerLoot(PlayerLoot lootInventory, BaseEntity targetEntity)
@@ -2554,11 +2553,32 @@ namespace AirdropExtended.Airdrop.Services
 
 		private void SetupBuiltInAirdrop()
 		{
-			var schedule = UnityEngine.Object.FindObjectsOfType<EventSchedule>().First();
 
-			schedule.CancelInvoke("RunSchedule");
-			if (_context.Settings.CommonSettings.BuiltInAirdropEnabled)
-				schedule.InvokeRepeating("RunSchedule", 1f, 1f);
+			var triggeredEvents = UnityEngine.Object.FindObjectsOfType<TriggeredEventPrefab>();
+			var planePrefab = triggeredEvents.Where(e => e.targetPrefab != null && e.targetPrefab.guid.Equals("8429b072581d64747bfe17eab7852b42")).ToList();
+			foreach (var prefab in planePrefab)
+			{
+				UnityEngine.Object.Destroy(prefab);
+			}
+
+			if (!_context.Settings.CommonSettings.BuiltInAirdropEnabled)
+				return;
+
+			var schedule = UnityEngine.Object.FindObjectsOfType<EventSchedule>().First();
+			schedule.gameObject.AddComponent<TriggeredEventPrefab>();
+			var eventPrefab = schedule.gameObject.GetComponent<TriggeredEventPrefab>();
+			eventPrefab.targetPrefab = new GameObjectRef { guid = "8429b072581d64747bfe17eab7852b42" };
+
+			//var schedules = UnityEngine.Object.FindObjectsOfType<EventSchedule>();
+			//foreach (var schedule in schedules)
+			//{
+			//	Diagnostics.Diagnostics.MessageToServer("Disable event schedule#{0}", schedule.GetInstanceID());
+			//	schedule.enabled = false;
+
+			//	schedule.CancelInvoke("RunSchedule");
+			//	if (_context.Settings.CommonSettings.BuiltInAirdropEnabled)
+			//		schedule.InvokeRepeating("RunSchedule", 1f, 1f);
+			//}
 		}
 
 		public void Cleanup()

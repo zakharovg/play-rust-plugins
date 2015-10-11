@@ -12,7 +12,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-	[Info("ServerInfo", "baton", "0.3.5", ResourceId = 1317)]
+	[Info("ServerInfo", "baton", "0.3.7", ResourceId = 1317)]
 	[Description("UI customizable server info with multiple tabs.")]
 	public sealed class ServerInfo : RustPlugin
 	{
@@ -199,6 +199,11 @@ namespace Oxide.Plugins
 			if (player == null || _settings == null)
 				return;
 
+			if (player.HasPlayerFlag(BasePlayer.PlayerFlags.ReceivingSnapshot))
+			{
+				timer.Once(2, () => OnPlayerInit(player));
+			}
+
 			PlayerInfoState state;
 			PlayerActiveTabs.TryGetValue(player.userID, out state);
 
@@ -295,8 +300,8 @@ namespace Oxide.Plugins
 			json = json.Replace(@"\t", "\t");
 			json = json.Replace(@"\n", "\n");
 
-			CommunityEntity.ServerInstance.ClientRPCEx(new Network.SendInfo { connection = player.net.connection }, null, "AddUI",
-				json);
+			//CuiHelper.AddUi(player, container);
+			CommunityEntity.ServerInstance.ClientRPCEx(new Network.SendInfo { connection = player.net.connection }, null, "AddUI", new Facepunch.ObjectList(json, null, null, null, null));
 		}
 
 		private static string AddMainPanel(CuiElementContainer container)
