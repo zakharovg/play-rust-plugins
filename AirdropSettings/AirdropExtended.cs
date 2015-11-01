@@ -30,7 +30,7 @@ using Timer = Oxide.Core.Libraries.Timer;
 
 namespace Oxide.Plugins
 {
-	[Info(Constants.PluginName, "baton", "0.8.10", ResourceId = 1210)]
+	[Info(Constants.PluginName, "baton", "1.0.0", ResourceId = 1210)]
 	[Description("Customizable airdrop")]
 	public class AirdropExtended : RustPlugin
 	{
@@ -55,7 +55,7 @@ namespace Oxide.Plugins
 		private void Bootstrap()
 		{
 			_pluginSettingsRepository = new PluginSettingsRepository(Config, SaveConfig);
-			Load();
+			LoadAireSettings();
 
 			var commands = CommandFactory.Create(_settingsContext, _pluginSettingsRepository, _airdropController);
 			PermissionService.RegisterPermissions(this, commands);
@@ -73,7 +73,7 @@ namespace Oxide.Plugins
 			}
 		}
 
-		private void Load()
+		private void LoadAireSettings()
 		{
 			_settingsContext.SettingsName = _pluginSettingsRepository.LoadSettingsName();
 			Diagnostics.MessageToServer("Loaded settings:{0}", _settingsContext.SettingsName);
@@ -105,8 +105,7 @@ namespace Oxide.Plugins
 			Diagnostics.MessageTo(
 				settings.Localization.NotifyOnPlayerLootingStartedMessage,
 				settings.CommonSettings.NotifyOnPlayerLootingStarted,
-				lootInventory.GetComponent<BasePlayer>().displayName,
-				supplyDrop.net.ID);
+				lootInventory.GetComponent<BasePlayer>().displayName);
 		}
 
 		private void OnEntitySpawned(BaseEntity entity)
@@ -393,7 +392,7 @@ namespace AirdropExtended.Behaviors
 {
 	public sealed class SupplyDropLandedBehavior : MonoBehaviour
 	{
-		private const string DefaultNotifyOnCollisionMessage = "Supply drop {0} has landed at {1},{2},{3}";
+		private const string DefaultNotifyOnCollisionMessage = "Supply drop has landed at {0:F0},{1:F0},{2:F0}";
 
 		private bool _isTriggered;
 
@@ -430,7 +429,7 @@ namespace AirdropExtended.Behaviors
 			var landedY = dropPosition.y;
 			var landedZ = dropPosition.z;
 
-			Diagnostics.Diagnostics.MessageTo(NotifyOnLandedMessage, NotifyOnLanded, baseEntity.net.ID, landedX, landedY, landedZ);
+			Diagnostics.Diagnostics.MessageTo(NotifyOnLandedMessage, NotifyOnLanded, landedX, landedY, landedZ);
 
 			if (NotifyAboutDirectionAroundOnDropLand || NotifyAboutPlayersAroundOnDropLand)
 				NotifyPlayersAround(dropPosition, baseEntity);
@@ -443,22 +442,22 @@ namespace AirdropExtended.Behaviors
 		private void NotifyPlayersAround(Vector3 dropPosition, BaseEntity baseEntity)
 		{
 			var players = BasePlayer.activePlayerList;
-			var nearbyPlayers = players.Count(p => Vector3.Distance(p.transform.position, dropPosition) < DropNotifyMaxDistance);
-			foreach (var player in players)
+			var nearbyPlayers = players
+				.Where(p => Vector3.Distance(p.transform.position, dropPosition) < DropNotifyMaxDistance)
+				.ToList();
+
+			foreach (var player in nearbyPlayers)
 			{
 				var distance = Vector3.Distance(player.transform.position, dropPosition);
 				var dropVector = (baseEntity.transform.position - player.eyes.position).normalized;
 				var rotation = Quaternion.LookRotation(dropVector);
 
 				var compassDirection = LocalizationExtensions.GetDirectionsFromAngle(rotation.eulerAngles.y, Settings);
-				if (DropNotifyMaxDistance < distance)
-					continue;
 
 				if (NotifyAboutDirectionAroundOnDropLand)
-					Diagnostics.Diagnostics.MessageToPlayer(player, NotifyAboutDirectionAroundOnDropLandMessage, distance,
-						compassDirection);
+					Diagnostics.Diagnostics.MessageToPlayer(player, NotifyAboutDirectionAroundOnDropLandMessage, distance, compassDirection);
 				if (NotifyAboutPlayersAroundOnDropLand)
-					Diagnostics.Diagnostics.MessageToPlayer(player, NotifyAboutPlayersAroundOnDropLandMessage, nearbyPlayers);
+					Diagnostics.Diagnostics.MessageToPlayer(player, NotifyAboutPlayersAroundOnDropLandMessage, nearbyPlayers.Count);
 			}
 		}
 
@@ -491,7 +490,7 @@ namespace AirdropExtended.Behaviors
 
 	public sealed class SupplyDropDespawnBehavior : MonoBehaviour
 	{
-		private const string DefaultNotifyOnDespawnMessage = "Supply drop {0} has been despawned at {1},{2},{3}";
+		private const string DefaultNotifyOnDespawnMessage = "Supply drop has been despawned at <color=red>{0:F0},{1:F0},{2:F0}</color>";
 		private const float DefaultSupplyStayTime = 300.0f;
 
 		private bool _isTriggered;
@@ -527,7 +526,7 @@ namespace AirdropExtended.Behaviors
 			var y = _baseEntity.transform.position.y;
 			var z = _baseEntity.transform.position.z;
 
-			Diagnostics.Diagnostics.MessageTo(NotifyOnDespawnMessage, NotifyOnDespawn, _baseEntity.net.ID, x, y, z);
+			Diagnostics.Diagnostics.MessageTo(NotifyOnDespawnMessage, NotifyOnDespawn, x, y, z);
 			_baseEntity.KillMessage();
 
 			OnDestroy();
@@ -787,7 +786,6 @@ namespace AirdropExtended.Permissions
 			if (Permission.UserHasPermission(uid, permissionName))
 				return true;
 
-			Diagnostics.Diagnostics.MessageToPlayer(player, "You have no permission to use this command!");
 			return false;
 		}
 
@@ -824,9 +822,9 @@ namespace AirdropExtended.Commands
 
 		public virtual void ExecuteFromChat(BasePlayer player, string command, string[] args)
 		{
-			if (!PermissionService.HasPermission(player, PermissionName))
+			if (!PermissionService.HasPermission(player, PermissionName) && !player.IsAdmin())
 			{
-				Diagnostics.Diagnostics.MessageToPlayer(player, "You have are required to have permission \"{0}\" to run command: {1}", PermissionName, Name);
+				Diagnostics.Diagnostics.MessageToPlayer(player, "You are not admin. You are required to have permission \"{0}\" to run command: {1}", PermissionName, Name);
 				return;
 			}
 
@@ -2521,7 +2519,7 @@ namespace AirdropExtended.Airdrop.Services
 			var y = entity.transform.position.y;
 			var z = entity.transform.position.z;
 
-			Diagnostics.Diagnostics.MessageTo(_context.Settings.Localization.NotifyOnDropStartedMessage, _context.Settings.CommonSettings.NotifyOnDropStarted, entity.net.ID, x, y, z);
+			Diagnostics.Diagnostics.MessageTo(_context.Settings.Localization.NotifyOnDropStartedMessage, _context.Settings.CommonSettings.NotifyOnDropStarted, x, y, z);
 
 			SupplyDropLandedBehavior.AddTo(supplyDrop, _context.Settings);
 			SupplyDropDespawnBehavior.AddTo(entity, _context.Settings);
@@ -2547,8 +2545,11 @@ namespace AirdropExtended.Airdrop.Services
 			itemContainer.capacity = _context.Settings.Capacity;
 
 			var itemList = _context.Settings.CreateItemList();
-			foreach (var item in itemList)
-				item.MoveToContainer(itemContainer, -1, false);
+			for (var index = 0; index < itemList.Count; index++)
+			{
+				var item = itemList[index];
+				item.MoveToContainer(itemContainer, index);
+			}
 		}
 
 		private void SetupBuiltInAirdrop()
@@ -2663,13 +2664,14 @@ namespace AirdropExtended.Airdrop.Settings
 	public sealed class AirdropSettings
 	{
 		public const int MaxCapacity = 18;
+		public const int DefaultCapacity = 6;
 
-		private int _capacity = MaxCapacity;
+		private int _capacity = DefaultCapacity;
 		private bool _customLootEnabled = true;
 
 		public AirdropSettings()
 		{
-			Capacity = MaxCapacity;
+			Capacity = DefaultCapacity;
 			PickStrategy = PickStrategy.Capacity;
 			DropLocation = DropLocationSettings.CreateDefault();
 			Localization = new LocalizationSettings();
@@ -2704,7 +2706,7 @@ namespace AirdropExtended.Airdrop.Settings
 
 		public List<Item> CreateItemList()
 		{
-			var groups = ItemGroups.Where(g => g.CanDrop());
+			var groups = ItemGroups.Where(g => g.CanDrop()).ToList();
 			List<Item> items;
 			switch (PickStrategy)
 			{
@@ -2731,22 +2733,26 @@ namespace AirdropExtended.Airdrop.Settings
 
 			var groupWeightAccumulator = 0.0f;
 			var fractionCapacity = (float)Capacity;
-			var groupWeightArray = weightedGroups.Aggregate(new List<Weighted<AirdropItemGroup>>(), (list, @group) =>
-			{
-				groupWeightAccumulator += @group.MaximumAmountInLoot / fractionCapacity;
-				list.Add(new Weighted<AirdropItemGroup> { Value = @group, Weight = groupWeightAccumulator });
-				return list;
-			});
+			var groupWeightArray = weightedGroups
+				.Aggregate(new List<Weighted<AirdropItemGroup>>(), (list, @group) =>
+					{
+						groupWeightAccumulator += @group.MaximumAmountInLoot / fractionCapacity;
+						list.Add(new Weighted<AirdropItemGroup> { Value = @group, Weight = groupWeightAccumulator });
+						return list;
+					})
+				.ToList();
 
-			for (var pickIteration = 0; pickIteration < Capacity; pickIteration++)
+			for (var pickIteration = 0; items.Count < Capacity; pickIteration++)
 			{
 				var groupRandomValue = (float)Oxide.Core.Random.Range(0.0d, 1.0d) * groupWeightAccumulator;
 				var indexOfGroupToPick = Algorithms.BinarySearchClosestIndex(groupWeightArray, g => g.Weight, groupRandomValue);
 				var weightedGroup = weightedGroups[indexOfGroupToPick];
 
-				var item = PickItemWeightedOrDefault(weightedGroup);
-				if (item == null)
-					continue;
+				Item item = null;
+				do
+				{
+					item = PickItemWeightedOrDefault(weightedGroup);
+				} while (item == null);
 
 				items.Add(item);
 			}
@@ -2755,18 +2761,9 @@ namespace AirdropExtended.Airdrop.Settings
 
 		private static Item PickItemWeightedOrDefault(AirdropItemGroup weightedGroup)
 		{
-			var itemWeightAccumulator = 0.0f;
-			var itemWeightedArray = weightedGroup.ItemSettings
-				.OrderByDescending(i => i.ChanceInPercent)
-				.Aggregate(new List<Weighted<AirdropItem>>(), (list, itm) =>
-				{
-					itemWeightAccumulator += itm.ChanceInPercent;
-					list.Add(new Weighted<AirdropItem> { Value = itm, Weight = itemWeightAccumulator });
-					return list;
-				});
-
-			var itemRandomValue = (float)Oxide.Core.Random.Range(0.0d, 1.0d) * itemWeightAccumulator;
-			var indexOfItemToPick = Algorithms.BinarySearchClosestIndex(itemWeightedArray, setting => setting.Weight, itemRandomValue);
+			var itemWeightedArray = weightedGroup.ItemWeightedArray;
+			var itemRandomValue = (float)Oxide.Core.Random.Range(0.0d, 1.0d) * weightedGroup.ItemWeightAccumulator;
+			var indexOfItemToPick = Algorithms.BinarySearchClosestIndex(weightedGroup.ItemWeightedArray, setting => setting.Weight, itemRandomValue);
 			var item = itemWeightedArray[indexOfItemToPick].Value;
 			var amount = Oxide.Core.Random.Range(item.MinAmount, item.MaxAmount);
 			if (amount == 0)
@@ -2783,14 +2780,19 @@ namespace AirdropExtended.Airdrop.Settings
 			var list = new List<Item>(Capacity);
 			foreach (var group in groups)
 			{
-				for (var i = 0; i < group.MaximumAmountInLoot; i++)
+				var items = new List<Item>();
+				for (var i = 0; items.Count < group.MaximumAmountInLoot; i++)
 				{
-					var item = PickItemWeightedOrDefault(@group);
-					if (item == null)
-						continue;
+					Item item;
+					do
+					{
+						item = PickItemWeightedOrDefault(group);
+					} while (item == null);
 
-					list.Add(item);
+					items.Add(item);
 				}
+
+				list.AddRange(items);
 			}
 			return list;
 		}
@@ -2813,6 +2815,8 @@ namespace AirdropExtended.Airdrop.Settings
 		private int _maximumAmountInLoot;
 		private bool _canDrop;
 		private List<AirdropItem> _itemSettings;
+		private List<Weighted<AirdropItem>> _itemWeightedArray;
+		private float _itemWeightAccumulator;
 
 		public string Name { get; set; }
 
@@ -2847,7 +2851,32 @@ namespace AirdropExtended.Airdrop.Settings
 					.OrderByDescending(i => i.MaxAmount)
 					.ThenByDescending(i => i.ChanceInPercent).ToList();
 				RefreshCanDrop();
+				RefreshWeightedArray();
 			}
+		}
+
+		public List<Weighted<AirdropItem>> ItemWeightedArray
+		{
+			get { return _itemWeightedArray; }
+		}
+
+		public float ItemWeightAccumulator
+		{
+			get { return _itemWeightAccumulator; }
+		}
+
+		private void RefreshWeightedArray()
+		{
+			_itemWeightAccumulator = 0.0f;
+			_itemWeightedArray = ItemSettings
+				.OrderByDescending(i => i.ChanceInPercent)
+				.Aggregate(new List<Weighted<AirdropItem>>(), (list, itm) =>
+				{
+					_itemWeightAccumulator = ItemWeightAccumulator + itm.ChanceInPercent;
+					list.Add(new Weighted<AirdropItem> { Value = itm, Weight = ItemWeightAccumulator });
+					return list;
+				})
+				.ToList();
 		}
 	}
 
@@ -3073,21 +3102,21 @@ namespace AirdropExtended.Airdrop.Settings
 
 	public sealed class LocalizationSettings
 	{
-		public const string DefaultNotifyOnNextDropPositionMessage = "Plane is dropping at: {0},{1},{2}.";
+		public const string DefaultNotifyOnNextDropPositionMessage = "Plane is dropping at: <color=red>{0:F0},{1:F0},{2:F0}</color>.";
 		public const string DefaultNotifyOPlaneSpawnedMessage = "Cargo Plane has been spawned.";
-		public const string DefaultNotifyOnPlaneRemovedMessage = "Cargo Plane has been removed, due to insufficient player count: {0}.";
-		public const string DefaultNotifyOnDropStartedMessage = "Supply Drop {0} has been spawned at {1},{2},{3}.";
-		public const string DefaultNotifyOnPlayerLootingStartedMessage = "Player {0} started looting the Supply Drop {1}.";
-		private const string DefaultNotifyOnCollisionMessage = "Supply drop {0} has landed at {1},{2},{3}";
-		private const string DefaultNotifyOnDespawnMessage = "Supply drop {0} has been despawned at {1},{2},{3}";
+		public const string DefaultNotifyOnPlaneRemovedMessage = "Cargo Plane has been removed, due to insufficient player count: <color=yellow>{0}</color>.";
+		public const string DefaultNotifyOnDropStartedMessage = "Supply Drop has been spawned at <color=red>{0:F0},{1:F0},{2:F0}</color>.";
+		public const string DefaultNotifyOnPlayerLootingStartedMessage = "<color=green>{0}</color> started looting the Supply Drop.";
+		private const string DefaultNotifyOnCollisionMessage = "Supply drop has landed at <color=red>{0:F0},{1:F0},{2:F0}</color>";
+		private const string DefaultNotifyOnDespawnMessage = "Supply drop has been despawned at <color=red>{0:F0},{1:F0},{2:F0}</color>";
 		private const string DefaultNotifyOnSupplySingalDisabledMessage = "Supply signals are disabled by server. An item has been added to your inventory/belt.";
-		private const string DefaultNotifyAboutPlayersAroundOnDropLandMessage = "There are {0} players near drop, including you!";
-		private const string DefaultNotifyAboutDirectionAroundOnDropLandMessage = "Airdrop is {0:F0} meters away from you! Direction: {1}";
+		private const string DefaultNotifyAboutPlayersAroundOnDropLandMessage = "There are <color=green>{0}</color> players near drop, including you!";
+		private const string DefaultNotifyAboutDirectionAroundOnDropLandMessage = "Airdrop is <color=green>{0:F0}</color> meters away from you! Direction: <color=yellow>{1}</color>";
 
-		public const string DefaultNotifyAboutPlayersAroundOnSupplyThrownMessage = "There are {0} players around supply signal, including you.";
-		public const string DefaultNotifyAboutDirectionAroundOnSupplyThrownMessage = "Someone launched supply signal {0} meters from you. Direction:{1}";
+		public const string DefaultNotifyAboutPlayersAroundOnSupplyThrownMessage = "There are <color=green>{0}</color> players around supply signal, including you.";
+		public const string DefaultNotifyAboutDirectionAroundOnSupplyThrownMessage = "Someone launched supply signal <color=green>{0:F0}</color> meters from you. Direction:<color=yellow>{1}</color>";
 
-		private const string DefaultPrefix = "aire:";
+		private const string DefaultPrefix = "[aire]: ";
 		private const string DefaultColor = "orange";
 
 		public string NotifyOnPlaneSpawnedMessage { get; set; }
@@ -3182,7 +3211,7 @@ namespace AirdropExtended.Airdrop.Settings
 
 		private static void AdjustGroupMaxAmount(List<AirdropItemGroup> value, int diff)
 		{
-			Diagnostics.Diagnostics.MessageToServer("adjusting groups amount: substracting {1} from total", diff);
+			Diagnostics.Diagnostics.MessageToServer("adjusting groups amount: substracting {0} from total", diff);
 			var groupsOrderedByDescending = value.OrderByDescending(g => g.MaximumAmountInLoot);
 			for (var i = diff; i > 0; i--)
 			{
@@ -3254,7 +3283,7 @@ namespace AirdropExtended.Airdrop.Settings
 			if (string.IsNullOrEmpty(settingsName)) throw new ArgumentException("Should not be blank", "settingsName");
 
 			var fileName = "airdropExtended_" + settingsName;
-			Diagnostics.Diagnostics.MessageToServer("Saving current settings to:{0}", settingsName);
+			Diagnostics.Diagnostics.MessageToServer("Saving settings to:{0}", settingsName);
 			Interface.GetMod().DataFileSystem.WriteObject(fileName, airdropSettings);
 		}
 	}
@@ -3269,6 +3298,7 @@ namespace AirdropExtended.Airdrop.Settings.Generate
 			//Construction
 			"generator.wind.scrap",
 			"lock.key",
+			
 			//Food
 			"wolfmeat.spoiled",
 			"wolfmeat.burned",
@@ -3277,6 +3307,8 @@ namespace AirdropExtended.Airdrop.Settings.Generate
 			"apple.spoiled",
 			"humanmeat.spoiled",
 			"humanmeat.burned",
+			"battery.small",
+			
 			//Misc
 			"book.accident",
 			"note",
@@ -3286,8 +3318,10 @@ namespace AirdropExtended.Airdrop.Settings.Generate
 			"skull.wolf",
 			"water",
 			//Tools
+			"lock.key",
 			"tool.camera",
-			"rock"
+			"rock",
+			"torch"
 		};
 
 		private static readonly Dictionary<string, Func<ItemDefinition, int[]>> DefaultAmountByCategoryMapping = new Dictionary
@@ -3295,37 +3329,66 @@ namespace AirdropExtended.Airdrop.Settings.Generate
 			{
 				{"Food", GenerateAmountMappingForFood},
 				{"Attire", def => new[] {1, 1}},
-				{"Items", def => new[] {1, 1}},
+				{"Items", GenerateAmountMappingForItems},
 				{"Ammunition", GenerateAmountMappingForAmmunition},
 				{"Misc", GenerateAmountMappingForMisc},
 				{"Construction", GenerateAmountMappingForConstruction},
 				{"Medical", GenerateMappingForMedical},
 				{"Tool", GenerateMappingForTool},
-				{"Traps", def => new[] {1, 1}},
+				{"Traps", GenerateMappingForTraps},
 				{"Weapon", def => new[] {1, 1}},
 				{"Resources", GenerateMappingForResource},
 				{"Blueprint", def => new[] {1, 1}}
 			};
 
+		private static int[] GenerateMappingForTraps(ItemDefinition itemDefinition)
+		{
+			if (itemDefinition.shortname.Equals("autoturret", StringComparison.OrdinalIgnoreCase))
+				return new[] { 0, 0 };
+
+			return new[] { 1, 1 };
+		}
+
 		private static int[] GenerateAmountMappingForFood(ItemDefinition itemDefinition)
 		{
+			var excludedItems = new[] { "bearmeat", "humanmeat.cooked", "humanmeat.raw", "mushroom", "chicken.raw", "wolfmeat.raw" };
 			var singleStackItems = new[] { "smallwaterbottle" };
 			if (singleStackItems.Contains(itemDefinition.shortname))
 				return new[] { 1, 1 };
 
+			if (excludedItems.Contains(itemDefinition.shortname))
+				return new[] { 0, 0 };
+
 			return new[] { 5, 10 };
 		}
 
-		private static int[] GenerateAmountMappingForAmmunition(ItemDefinition def)
+		private static int[] GenerateAmountMappingForItems(ItemDefinition itemDefinition)
 		{
-			return def.shortname.Contains("rocket", CompareOptions.OrdinalIgnoreCase)
-				? new[] { 1, 3 }
-				: new[] { 32, 48 };
+			var excludedItems = new[] { "box.wooden", "furnace", "stash.small", "botabag", "campfire", "wolfmeat.raw" };
+			if (excludedItems.Contains(itemDefinition.shortname))
+				return new[] { 0, 0 };
+
+			return new[] { 1, 1 };
 		}
 
-		private static int[] GenerateAmountMappingForMisc(ItemDefinition def)
+		private static int[] GenerateAmountMappingForAmmunition(ItemDefinition itemDefinition)
 		{
-			return def.shortname.Contains("blueprint", CompareOptions.OrdinalIgnoreCase)
+			var excludedItems = new[] { "arrow.wooden", "ammo.rocket.smoke" };
+			if (excludedItems.Contains(itemDefinition.shortname))
+				return new[] { 0, 0 };
+
+			return itemDefinition.shortname.Contains("rocket", CompareOptions.OrdinalIgnoreCase)
+				? new[] { 1, 3 }
+				: new[] { 32, 64 };
+		}
+
+		private static int[] GenerateAmountMappingForMisc(ItemDefinition itemDefinition)
+		{
+			var excludedItems = new[] { "door.key" };
+			if (excludedItems.Contains(itemDefinition.shortname))
+				return new[] { 0, 0 };
+
+			return itemDefinition.shortname.Contains("blueprint", CompareOptions.OrdinalIgnoreCase)
 				? new[] { 1, 3 }
 				: new[] { 1, 1 };
 		}
@@ -3335,14 +3398,20 @@ namespace AirdropExtended.Airdrop.Settings.Generate
 			var blueprint = ItemManager.FindBlueprint(itemDefinition);
 			if (blueprint == null)
 				return new[] { 0, 0 };
+
 			if (itemDefinition.shortname.Equals("lock.key", StringComparison.OrdinalIgnoreCase))
 				return new[] { 0, 0 };
+
 			return new[] { 1, 1 };
 		}
 
 		private static int[] GenerateMappingForMedical(ItemDefinition itemDefinition)
 		{
-			var largeStackItems = new[] { "antiradpills", "blood" };
+			var excludedItems = new[] { "blood" };
+			if (excludedItems.Contains(itemDefinition.shortname))
+				return new[] { 0, 0 };
+
+			var largeStackItems = new[] { "antiradpills" };
 			return largeStackItems.Contains(itemDefinition.shortname)
 				? new[] { 5, 10 }
 				: new[] { 1, 1 };
@@ -3350,8 +3419,11 @@ namespace AirdropExtended.Airdrop.Settings.Generate
 
 		private static int[] GenerateMappingForTool(ItemDefinition itemDefinition)
 		{
-			var largeAmountItems = new[] { "explosive.timed" };
+			var excludedItems = new[] { "flare", "hammer", "stonehatchet", "torch", "stone.pickaxe" };
+			if (excludedItems.Contains(itemDefinition.shortname))
+				return new[] { 0, 0 };
 
+			var largeAmountItems = new[] { "explosive.timed" };
 			if (largeAmountItems.Contains(itemDefinition.shortname))
 				return new[] { 3, 5 };
 
@@ -3360,9 +3432,9 @@ namespace AirdropExtended.Airdrop.Settings.Generate
 
 		private static int[] GenerateMappingForResource(ItemDefinition itemDefinition)
 		{
-			var largeStackItems = new[] { "wood", "sulfur_ore", "sulfur", "stones", "metal_ore", "metal_fragments", "fat_animal", "cloth", "bone_fragments" };
-			var smallStackItems = new[] { "paper", "gunpowder", "lowgradefuel", "explosives", "can_tuna_empty", "can_beans_empty" };
-			var zeroStackItems = new[] { "skull_wolf", "skull_human", "water", "salt_water", "charcoal", "battery_small" };
+			var largeStackItems = new[] { "wood", "sulfur_ore", "sulfur", "stones", "metal_ore", "metal_fragments", "fat_animal", "cloth", "gunpowder", "lowgradefuel", "leather" };
+			var smallStackItems = new[] { "paper", "lowgradefuel", "explosives" };
+			var zeroStackItems = new[] { "skull_wolf", "skull_human", "water", "salt_water", "charcoal", "targeting.computer", "can.beans.empty", "can.tuna.empty", "bone.fragments", "battery_small", "charcoal", "cctv.camera" };
 
 			if (largeStackItems.Contains(itemDefinition.shortname))
 				return new[] { 750, 1000 };
@@ -3375,18 +3447,18 @@ namespace AirdropExtended.Airdrop.Settings.Generate
 
 		private static readonly Dictionary<string, int> DefaultCategoryAmountMapping = new Dictionary<string, int>
 			{
-				{"Food", 1},
+				{"Food", 3},
 				{"Attire", 2},
 				{"Items", 1},
-				{"Ammunition", 1},
+				{"Ammunition", 6},
 				{"Construction", 2},
 				{"Medical", 2},
-				{"Tool", 2},
+				{"Tool", 1},
 				{"Traps", 1},
-				{"Misc", 0},
-				{"Weapon", 2},
+				{"Misc", 1},
+				{"Weapon", 6},
 				{"Resources", 2},
-				{"Blueprint", 2}
+				{"Blueprint", 1}
 			};
 
 		public const string TemplatePath = "";
@@ -3397,7 +3469,7 @@ namespace AirdropExtended.Airdrop.Settings.Generate
 			return new AirdropSettings
 			{
 				ItemGroups = itemGroups,
-				Capacity = AirdropSettings.MaxCapacity,
+				Capacity = AirdropSettings.DefaultCapacity,
 				CommonSettings = CommonSettings.CreateDefault()
 			};
 		}
@@ -3424,12 +3496,7 @@ namespace AirdropExtended.Airdrop.Settings.Generate
 								var amountMappingArray = amountFunc == null
 									? new[] { 0, 0 }
 									: amountFunc(itemDefinition);
-
-								var chanceInPercent = ItemManager.bpList.Any(bp =>
-										bp.targetItem.shortname.Equals(itemDefinition.shortname, StringComparison.OrdinalIgnoreCase) &&
-										bp.defaultBlueprint)
-									? 0.0f
-									: CalculateChanceByRarity(itemDefinition.rarity);
+								var chanceInPercent = CalculateChanceByRarity(itemDefinition.rarity);
 
 								return new AirdropItem
 								{
@@ -3452,13 +3519,21 @@ namespace AirdropExtended.Airdrop.Settings.Generate
 
 		private static float CalculateChanceByRarity(Rarity rarity)
 		{
-			return 100 - ((int)rarity + 1) * 12.5f;
+			return 100 - ((int)rarity + 1) * 16f;
 		}
 
 		private static AirdropItemGroup GenerateBlueprintItemGroup()
 		{
-			var notDefaultBlueprints = ItemManager.bpList.Where(bp => !bp.defaultBlueprint);
+			var excludedBlueprints = DefaultExcludedItems.Concat(new[] { "ammo.rocket.smoke", "lantern_a", "lantern_b", "spear.stone" });
+			var notDefaultBlueprints = ItemManager.bpList
+				.Where(bp =>
+					!bp.defaultBlueprint &&
+					bp.userCraftable &&
+					bp.isResearchable &&
+					!excludedBlueprints.Contains(bp.targetItem.shortname))
+				.ToList();
 			var bpItems = notDefaultBlueprints.Select(b => b.targetItem).ToList();
+
 			return new AirdropItemGroup
 			{
 				ItemSettings = bpItems.Select(itemDef => new AirdropItem

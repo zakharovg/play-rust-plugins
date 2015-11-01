@@ -300,8 +300,8 @@ namespace Oxide.Plugins
 			json = json.Replace(@"\t", "\t");
 			json = json.Replace(@"\n", "\n");
 
-			//CuiHelper.AddUi(player, container);
-			CommunityEntity.ServerInstance.ClientRPCEx(new Network.SendInfo { connection = player.net.connection }, null, "AddUI", new Facepunch.ObjectList(json, null, null, null, null));
+			CuiHelper.AddUi(player, container);
+			//CommunityEntity.ServerInstance.ClientRPCEx(new Network.SendInfo { connection = player.net.connection }, null, "AddUI", new Facepunch.ObjectList(json, null, null, null, null));
 		}
 
 		private static string AddMainPanel(CuiElementContainer container)

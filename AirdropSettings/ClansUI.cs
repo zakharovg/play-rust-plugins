@@ -12,6 +12,7 @@ using Oxide.Core;
 using Oxide.Core.Libraries.Covalence;
 using Oxide.Core.Plugins;
 using Oxide.Game.Rust.Cui;
+using Steamworks;
 using UnityEngine;
 using LogType = Oxide.Core.Logging.LogType;
 
@@ -51,7 +52,6 @@ namespace Oxide.Plugins
 		{
 			LoadConfig();
 			LoadData();
-
 
 			if (Config.Get("MaxPendingRequestsPerClan") == null)
 			{
@@ -672,7 +672,7 @@ namespace Oxide.Plugins
 			json = json.Replace(@"\t", "\t");
 			json = json.Replace(@"\n", "\n");
 
-			CommunityEntity.ServerInstance.ClientRPCEx(new SendInfo { connection = player.net.connection }, null, "AddUI", new Facepunch.ObjectList(json, null, null, null, null));
+			//CommunityEntity.ServerInstance.ClientRPCEx(new SendInfo { connection = player.net.connection }, null, "AddUI", new Facepunch.ObjectList(json, null, null, null, null));
 		}
 
 		private static CuiLabel CreateRedDawnLabel()
