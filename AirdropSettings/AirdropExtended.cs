@@ -10,6 +10,7 @@ using AirdropExtended.Diagnostics;
 using AirdropExtended.Permissions;
 using AirdropExtended.Rust.Extensions;
 using AirdropExtended.WeightedSearch;
+using Newtonsoft.Json;
 using Oxide.Core;
 using System;
 using System.Collections.Generic;
@@ -30,7 +31,7 @@ using Timer = Oxide.Core.Libraries.Timer;
 
 namespace Oxide.Plugins
 {
-	[Info(Constants.PluginName, "baton", "1.0.0", ResourceId = 1210)]
+	[Info(Constants.PluginName, "baton", "1.0.1", ResourceId = 1210)]
 	[Description("Customizable airdrop")]
 	public class AirdropExtended : RustPlugin
 	{
@@ -305,6 +306,7 @@ namespace AirdropExtended
 	public sealed class Constants
 	{
 		public const string PluginName = "AirdropExtended";
+		public const string CargoPlanePrefab = "assets/prefabs/npc/cargo plane/cargo_plane.prefab";
 	}
 
 	public sealed class SettingsContext
@@ -2188,7 +2190,7 @@ namespace AirdropExtended.Airdrop.Services
 		public static CargoPlane CreatePlane(Vector3 position)
 		{
 			var plane = (CargoPlane)GameManager.server.CreateEntity(
-				"assets/bundled/prefabs/events/cargo_plane.prefab",
+				Constants.CargoPlanePrefab,
 				new Vector3(),
 				new Quaternion());
 
@@ -2199,7 +2201,7 @@ namespace AirdropExtended.Airdrop.Services
 		public static CargoPlane CreatePlane(CargoPlaneData data)
 		{
 			var plane = (CargoPlane)GameManager.server.CreateEntity(
-				"assets/bundled/prefabs/events/cargo_plane.prefab",
+				Constants.CargoPlanePrefab,
 				new Vector3(),
 				new Quaternion());
 			if (plane == null)
@@ -2554,7 +2556,6 @@ namespace AirdropExtended.Airdrop.Services
 
 		private void SetupBuiltInAirdrop()
 		{
-
 			var triggeredEvents = UnityEngine.Object.FindObjectsOfType<TriggeredEventPrefab>();
 			var planePrefab = triggeredEvents.Where(e => e.targetPrefab != null && e.targetPrefab.guid.Equals("8429b072581d64747bfe17eab7852b42")).ToList();
 			foreach (var prefab in planePrefab)
@@ -2855,11 +2856,13 @@ namespace AirdropExtended.Airdrop.Settings
 			}
 		}
 
+		[JsonIgnore] 
 		public List<Weighted<AirdropItem>> ItemWeightedArray
 		{
 			get { return _itemWeightedArray; }
 		}
 
+		[JsonIgnore] 
 		public float ItemWeightAccumulator
 		{
 			get { return _itemWeightAccumulator; }
@@ -3080,11 +3083,13 @@ namespace AirdropExtended.Airdrop.Settings
 			};
 		}
 
+		[JsonIgnore]
 		public float PlaneWidth
 		{
 			get { return (Math.Abs(MinX) + Math.Abs(MaxX)) / 2.0f; }
 		}
 
+		[JsonIgnore]
 		public float PlaneHeight
 		{
 			get { return (Math.Abs(MinZ) + Math.Abs(MaxZ)) / 2.0f; }
