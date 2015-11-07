@@ -31,7 +31,7 @@ using Timer = Oxide.Core.Libraries.Timer;
 
 namespace Oxide.Plugins
 {
-	[Info(Constants.PluginName, "baton", "1.0.1", ResourceId = 1210)]
+	[Info(Constants.PluginName, "baton", "1.0.2", ResourceId = 1210)]
 	[Description("Customizable airdrop")]
 	public class AirdropExtended : RustPlugin
 	{
@@ -68,7 +68,7 @@ namespace Oxide.Plugins
 				var command1 = command;
 				consoleSystem.AddConsoleCommand(command.Name, this, arg =>
 				{
-					command1.Execute(arg, null);
+					command1.Execute(arg, arg.Player());
 					return true;
 				});
 			}
@@ -824,7 +824,7 @@ namespace AirdropExtended.Commands
 
 		public virtual void ExecuteFromChat(BasePlayer player, string command, string[] args)
 		{
-			if (!PermissionService.HasPermission(player, PermissionName) && !player.IsAdmin())
+			if (player!=null && !PermissionService.HasPermission(player, PermissionName) && !player.IsAdmin())
 			{
 				Diagnostics.Diagnostics.MessageToPlayer(player, "You are not admin. You are required to have permission \"{0}\" to run command: {1}", PermissionName, Name);
 				return;
@@ -833,10 +833,21 @@ namespace AirdropExtended.Commands
 			var commandString = args.Aggregate(command, (s, s1) => s + " " + s1.QuoteSafe());
 			Diagnostics.Diagnostics.MessageToServer("'{0}' called by {1}", commandString, player.displayName);
 			var commandArgs = new ConsoleSystem.Arg(commandString);
-			Execute(commandArgs, player);
+			ExecuteInternal(commandArgs, player);
 		}
 
-		public abstract void Execute(ConsoleSystem.Arg arg, BasePlayer player);
+		public virtual void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		{
+			if (player != null && !PermissionService.HasPermission(player, PermissionName) && !player.IsAdmin())
+			{
+				Diagnostics.Diagnostics.MessageToPlayer(player, "You are not admin. You are required to have permission \"{0}\" to run command: {1}", PermissionName, Name);
+				return;
+			}
+
+			ExecuteInternal(arg, player);
+		}
+
+		protected abstract void ExecuteInternal(ConsoleSystem.Arg arg, BasePlayer player);
 
 		protected void PrintUsage(BasePlayer player)
 		{
@@ -879,7 +890,7 @@ namespace AirdropExtended.Commands
 			_controller = controller;
 		}
 
-		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		protected override void ExecuteInternal(ConsoleSystem.Arg arg, BasePlayer player)
 		{
 			if (!arg.HasArgs())
 			{
@@ -928,7 +939,7 @@ namespace AirdropExtended.Commands
 			_controller = controller;
 		}
 
-		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		protected override void ExecuteInternal(ConsoleSystem.Arg arg, BasePlayer player)
 		{
 			Diagnostics.Diagnostics.MessageToServerAndPlayer(player, "Reloading plugin");
 
@@ -957,7 +968,7 @@ namespace AirdropExtended.Commands
 			_pluginSettingsRepository = pluginSettingsRepository;
 		}
 
-		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		protected override void ExecuteInternal(ConsoleSystem.Arg arg, BasePlayer player)
 		{
 			var settingsName = arg.HasArgs()
 				? arg.GetString(0)
@@ -987,7 +998,7 @@ namespace AirdropExtended.Commands
 			: base("aire.generate", "aire.canGenerate")
 		{ }
 
-		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		protected override void ExecuteInternal(ConsoleSystem.Arg arg, BasePlayer player)
 		{
 			if (!arg.HasArgs())
 			{
@@ -1028,7 +1039,7 @@ namespace AirdropExtended.Commands
 			_controller = controller;
 		}
 
-		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		protected override void ExecuteInternal(ConsoleSystem.Arg arg, BasePlayer player)
 		{
 			if (!arg.HasArgs())
 			{
@@ -1065,7 +1076,7 @@ namespace AirdropExtended.Commands
 			_controller = controller;
 		}
 
-		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		protected override void ExecuteInternal(ConsoleSystem.Arg arg, BasePlayer player)
 		{
 			if (!arg.HasArgs())
 			{
@@ -1101,7 +1112,7 @@ namespace AirdropExtended.Commands
 			_controller = controller;
 		}
 
-		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		protected override void ExecuteInternal(ConsoleSystem.Arg arg, BasePlayer player)
 		{
 			if (!arg.HasArgs())
 			{
@@ -1137,7 +1148,7 @@ namespace AirdropExtended.Commands
 			_controller = controller;
 		}
 
-		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		protected override void ExecuteInternal(ConsoleSystem.Arg arg, BasePlayer player)
 		{
 			if (!arg.HasArgs())
 			{
@@ -1173,7 +1184,7 @@ namespace AirdropExtended.Commands
 			_controller = controller;
 		}
 
-		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		protected override void ExecuteInternal(ConsoleSystem.Arg arg, BasePlayer player)
 		{
 			if (!arg.HasArgs())
 			{
@@ -1209,7 +1220,7 @@ namespace AirdropExtended.Commands
 			_controller = controller;
 		}
 
-		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		protected override void ExecuteInternal(ConsoleSystem.Arg arg, BasePlayer player)
 		{
 			if (!arg.HasArgs())
 			{
@@ -1245,7 +1256,7 @@ namespace AirdropExtended.Commands
 			_controller = controller;
 		}
 
-		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		protected override void ExecuteInternal(ConsoleSystem.Arg arg, BasePlayer player)
 		{
 			if (!arg.HasArgs())
 			{
@@ -1280,7 +1291,7 @@ namespace AirdropExtended.Commands
 			_controller = controller;
 		}
 
-		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		protected override void ExecuteInternal(ConsoleSystem.Arg arg, BasePlayer player)
 		{
 			if (!arg.HasArgs())
 			{
@@ -1317,7 +1328,7 @@ namespace AirdropExtended.Commands
 			_controller = controller;
 		}
 
-		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		protected override void ExecuteInternal(ConsoleSystem.Arg arg, BasePlayer player)
 		{
 			if (!arg.HasArgs())
 			{
@@ -1352,7 +1363,7 @@ namespace AirdropExtended.Commands
 			_controller = controller;
 		}
 
-		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		protected override void ExecuteInternal(ConsoleSystem.Arg arg, BasePlayer player)
 		{
 			if (!arg.HasArgs())
 			{
@@ -1388,7 +1399,7 @@ namespace AirdropExtended.Commands
 			_controller = controller;
 		}
 
-		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		protected override void ExecuteInternal(ConsoleSystem.Arg arg, BasePlayer player)
 		{
 			if (!arg.HasArgs())
 			{
@@ -1424,7 +1435,7 @@ namespace AirdropExtended.Commands
 			_controller = controller;
 		}
 
-		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		protected override void ExecuteInternal(ConsoleSystem.Arg arg, BasePlayer player)
 		{
 			if (!arg.HasArgs())
 			{
@@ -1470,7 +1481,7 @@ namespace AirdropExtended.Commands
 			_usageString = string.Join(Environment.NewLine, usageStrings);
 		}
 
-		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		protected override void ExecuteInternal(ConsoleSystem.Arg arg, BasePlayer player)
 		{
 			if (!arg.HasArgs())
 			{
@@ -1546,7 +1557,7 @@ namespace AirdropExtended.Commands
 			_usageString = string.Join(Environment.NewLine, usageStrings);
 		}
 
-		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		protected override void ExecuteInternal(ConsoleSystem.Arg arg, BasePlayer player)
 		{
 			if (!arg.HasArgs())
 			{
@@ -1611,7 +1622,7 @@ namespace AirdropExtended.Commands
 			_controller = controller;
 		}
 
-		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		protected override void ExecuteInternal(ConsoleSystem.Arg arg, BasePlayer player)
 		{
 			if (!arg.HasArgs())
 			{
@@ -1644,7 +1655,7 @@ namespace AirdropExtended.Commands
 			_context = context;
 		}
 
-		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		protected override void ExecuteInternal(ConsoleSystem.Arg arg, BasePlayer player)
 		{
 			Diagnostics.Diagnostics.MessageToServerAndPlayer(player, "Calling random drop");
 			AirdropService.CallRandomDrop(_context.Settings.DropLocation);
@@ -1667,7 +1678,7 @@ namespace AirdropExtended.Commands
 			_context = context;
 		}
 
-		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		protected override void ExecuteInternal(ConsoleSystem.Arg arg, BasePlayer player)
 		{
 			var planeCount = arg.GetInt(0, 3);
 
@@ -1691,7 +1702,7 @@ namespace AirdropExtended.Commands
 			: base("aire.topos", "aire.canDropToPos")
 		{ }
 
-		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		protected override void ExecuteInternal(ConsoleSystem.Arg arg, BasePlayer player)
 		{
 			if (!arg.HasArgs())
 			{
@@ -1736,7 +1747,7 @@ namespace AirdropExtended.Commands
 			: base("aire.toplayer", "aire.canDropToPlayer")
 		{ }
 
-		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		protected override void ExecuteInternal(ConsoleSystem.Arg arg, BasePlayer player)
 		{
 			if (!arg.HasArgs())
 			{
@@ -1773,7 +1784,7 @@ namespace AirdropExtended.Commands
 			: base("aire.tome", "aire.canDropToMe", true)
 		{ }
 
-		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		protected override void ExecuteInternal(ConsoleSystem.Arg arg, BasePlayer player)
 		{
 			if (player == null)
 				return;
@@ -1804,7 +1815,7 @@ namespace AirdropExtended.Commands
 			_controller = controller;
 		}
 
-		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		protected override void ExecuteInternal(ConsoleSystem.Arg arg, BasePlayer player)
 		{
 			if (!arg.HasArgs(2))
 			{
@@ -1854,7 +1865,7 @@ namespace AirdropExtended.Commands
 			_controller = controller;
 		}
 
-		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		protected override void ExecuteInternal(ConsoleSystem.Arg arg, BasePlayer player)
 		{
 			if (!arg.HasArgs(2))
 			{
@@ -1904,7 +1915,7 @@ namespace AirdropExtended.Commands
 			_controller = controller;
 		}
 
-		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		protected override void ExecuteInternal(ConsoleSystem.Arg arg, BasePlayer player)
 		{
 			if (!arg.HasArgs())
 			{
@@ -1940,7 +1951,7 @@ namespace AirdropExtended.Commands
 			_controller = controller;
 		}
 
-		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		protected override void ExecuteInternal(ConsoleSystem.Arg arg, BasePlayer player)
 		{
 			if (!arg.HasArgs())
 			{
@@ -1978,7 +1989,7 @@ namespace AirdropExtended.Commands
 			_context = context;
 		}
 
-		public override void Execute(ConsoleSystem.Arg arg, BasePlayer player)
+		protected override void ExecuteInternal(ConsoleSystem.Arg arg, BasePlayer player)
 		{
 			var itemList = _context.Settings.CreateItemList();
 			Diagnostics.Diagnostics.MessageToServerAndPlayer(player, "Test airdrop crate contents:");
@@ -2749,7 +2760,7 @@ namespace AirdropExtended.Airdrop.Settings
 				var indexOfGroupToPick = Algorithms.BinarySearchClosestIndex(groupWeightArray, g => g.Weight, groupRandomValue);
 				var weightedGroup = weightedGroups[indexOfGroupToPick];
 
-				Item item = null;
+				Item item;
 				do
 				{
 					item = PickItemWeightedOrDefault(weightedGroup);
@@ -2856,13 +2867,13 @@ namespace AirdropExtended.Airdrop.Settings
 			}
 		}
 
-		[JsonIgnore] 
+		[JsonIgnore]
 		public List<Weighted<AirdropItem>> ItemWeightedArray
 		{
 			get { return _itemWeightedArray; }
 		}
 
-		[JsonIgnore] 
+		[JsonIgnore]
 		public float ItemWeightAccumulator
 		{
 			get { return _itemWeightAccumulator; }
