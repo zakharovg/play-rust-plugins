@@ -19,15 +19,18 @@ namespace Oxide.Plugins
 		private static Settings _settings;
 		private static readonly Dictionary<ulong, PlayerInfoState> PlayerActiveTabs = new Dictionary<ulong, PlayerInfoState>();
 		private static readonly Permission Permission = Interface.GetMod().GetLibrary<Permission>();
-
-		protected override void LoadDefaultConfig()
-		{
-			Config.Set("settings", Settings.CreateDefault());
-		}
+		private static bool _errorLoading = false;
 
 		private void OnServerInitialized()
 		{
+			OnError += (sender, message) => _errorLoading = true;
 			LoadConfig();
+			if(_errorLoading)
+			{
+				Puts("ServerInfo: Failed to load config");
+				return;
+			}
+
 			var configFileName = Manager.ConfigPath + "/server_info_text.json";
 
 			_settings = null;

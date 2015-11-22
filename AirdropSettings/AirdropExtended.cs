@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using AirdropExtended;
 using AirdropExtended.Airdrop.Services;
 using AirdropExtended.Airdrop.Settings;
@@ -31,7 +32,7 @@ using Timer = Oxide.Core.Libraries.Timer;
 
 namespace Oxide.Plugins
 {
-	[Info(Constants.PluginName, "baton", "1.0.2", ResourceId = 1210)]
+	[Info(Constants.PluginName, "baton", "1.0.3", ResourceId = 1210)]
 	[Description("Customizable airdrop")]
 	public class AirdropExtended : RustPlugin
 	{
@@ -756,7 +757,7 @@ namespace AirdropExtended.Diagnostics
 		public static void MessageToAll(string message, params object[] args)
 		{
 			var msg = string.Format(Format, Color, Prefix) + string.Format(message, args);
-			ConsoleSystem.Broadcast("chat.add \"SERVER\" " + msg.QuoteSafe() + " 1.0", new object[0]);
+			ConsoleSystem.Broadcast("chat.add \"SERVER\" " + StringExtensions.QuoteSafe(msg) + " 1.0", new object[0]);
 		}
 
 		public static void MessageToServer(string message, params object[] args)
@@ -824,13 +825,13 @@ namespace AirdropExtended.Commands
 
 		public virtual void ExecuteFromChat(BasePlayer player, string command, string[] args)
 		{
-			if (player!=null && !PermissionService.HasPermission(player, PermissionName) && !player.IsAdmin())
+			if (player != null && !PermissionService.HasPermission(player, PermissionName) && !player.IsAdmin())
 			{
 				Diagnostics.Diagnostics.MessageToPlayer(player, "You are not admin. You are required to have permission \"{0}\" to run command: {1}", PermissionName, Name);
 				return;
 			}
 
-			var commandString = args.Aggregate(command, (s, s1) => s + " " + s1.QuoteSafe());
+			var commandString = args.Aggregate(command, (s, s1) => s + " " + StringExtensions.QuoteSafe(s1));
 			Diagnostics.Diagnostics.MessageToServer("'{0}' called by {1}", commandString, player.displayName);
 			var commandArgs = new ConsoleSystem.Arg(commandString);
 			ExecuteInternal(commandArgs, player);
@@ -2747,11 +2748,11 @@ namespace AirdropExtended.Airdrop.Settings
 			var fractionCapacity = (float)Capacity;
 			var groupWeightArray = weightedGroups
 				.Aggregate(new List<Weighted<AirdropItemGroup>>(), (list, @group) =>
-					{
-						groupWeightAccumulator += @group.MaximumAmountInLoot / fractionCapacity;
-						list.Add(new Weighted<AirdropItemGroup> { Value = @group, Weight = groupWeightAccumulator });
-						return list;
-					})
+				{
+					groupWeightAccumulator += @group.MaximumAmountInLoot / fractionCapacity;
+					list.Add(new Weighted<AirdropItemGroup> { Value = @group, Weight = groupWeightAccumulator });
+					return list;
+				})
 				.ToList();
 
 			for (var pickIteration = 0; items.Count < Capacity; pickIteration++)
@@ -2782,6 +2783,9 @@ namespace AirdropExtended.Airdrop.Settings
 				return null;
 
 			var i1 = ItemManager.CreateByName(item.Name, amount);
+			if (i1 == null)
+				return null;
+
 			if (item.IsBlueprint)
 				i1.SetFlag(Item.Flag.Blueprint, true);
 			return i1;
@@ -3119,15 +3123,15 @@ namespace AirdropExtended.Airdrop.Settings
 	public sealed class LocalizationSettings
 	{
 		public const string DefaultNotifyOnNextDropPositionMessage = "Plane is dropping at: <color=red>{0:F0},{1:F0},{2:F0}</color>.";
-		public const string DefaultNotifyOPlaneSpawnedMessage = "Cargo Plane has been spawned.";
+		public const string DefaultNotifyOnPlaneSpawnedMessage = "Cargo Plane has been spawned.";
 		public const string DefaultNotifyOnPlaneRemovedMessage = "Cargo Plane has been removed, due to insufficient player count: <color=yellow>{0}</color>.";
 		public const string DefaultNotifyOnDropStartedMessage = "Supply Drop has been spawned at <color=red>{0:F0},{1:F0},{2:F0}</color>.";
 		public const string DefaultNotifyOnPlayerLootingStartedMessage = "<color=green>{0}</color> started looting the Supply Drop.";
-		private const string DefaultNotifyOnCollisionMessage = "Supply drop has landed at <color=red>{0:F0},{1:F0},{2:F0}</color>";
-		private const string DefaultNotifyOnDespawnMessage = "Supply drop has been despawned at <color=red>{0:F0},{1:F0},{2:F0}</color>";
-		private const string DefaultNotifyOnSupplySingalDisabledMessage = "Supply signals are disabled by server. An item has been added to your inventory/belt.";
-		private const string DefaultNotifyAboutPlayersAroundOnDropLandMessage = "There are <color=green>{0}</color> players near drop, including you!";
-		private const string DefaultNotifyAboutDirectionAroundOnDropLandMessage = "Airdrop is <color=green>{0:F0}</color> meters away from you! Direction: <color=yellow>{1}</color>";
+		public const string DefaultNotifyOnCollisionMessage = "Supply drop has landed at <color=red>{0:F0},{1:F0},{2:F0}</color>";
+		public const string DefaultNotifyOnDespawnMessage = "Supply drop has been despawned at <color=red>{0:F0},{1:F0},{2:F0}</color>";
+		public const string DefaultNotifyOnSupplySingalDisabledMessage = "Supply signals are disabled by server. An item has been added to your inventory/belt.";
+		public const string DefaultNotifyAboutPlayersAroundOnDropLandMessage = "There are <color=green>{0}</color> players near drop, including you!";
+		public const string DefaultNotifyAboutDirectionAroundOnDropLandMessage = "Airdrop is <color=green>{0:F0}</color> meters away from you! Direction: <color=yellow>{1}</color>";
 
 		public const string DefaultNotifyAboutPlayersAroundOnSupplyThrownMessage = "There are <color=green>{0}</color> players around supply signal, including you.";
 		public const string DefaultNotifyAboutDirectionAroundOnSupplyThrownMessage = "Someone launched supply signal <color=green>{0:F0}</color> meters from you. Direction:<color=yellow>{1}</color>";
@@ -3155,7 +3159,7 @@ namespace AirdropExtended.Airdrop.Settings
 
 		public LocalizationSettings()
 		{
-			NotifyOnPlaneSpawnedMessage = DefaultNotifyOPlaneSpawnedMessage;
+			NotifyOnPlaneSpawnedMessage = DefaultNotifyOnPlaneSpawnedMessage;
 			NotifyOnNextDropPositionMessage = DefaultNotifyOnNextDropPositionMessage;
 			NotifyOnPlaneRemovedMessage = DefaultNotifyOnPlaneRemovedMessage;
 			NotifyOnDropStartedMessage = DefaultNotifyOnDropStartedMessage;
@@ -3223,6 +3227,8 @@ namespace AirdropExtended.Airdrop.Settings
 
 			ValidateFrequency(settings);
 			ValidateCrates(settings);
+
+			ValidateMessages(settings);
 		}
 
 		private static void AdjustGroupMaxAmount(List<AirdropItemGroup> value, int diff)
@@ -3262,6 +3268,63 @@ namespace AirdropExtended.Airdrop.Settings
 		{
 			if (settings.CommonSettings.MinCrates > settings.CommonSettings.MaxCrates)
 				settings.CommonSettings.MaxCrates = settings.CommonSettings.MinCrates;
+		}
+
+		private static void ValidateMessages(AirdropSettings settings)
+		{
+			ValidateLocalizationSetting(
+				settings.Localization.NotifyAboutDirectionAroundOnDropLandMessage,
+				LocalizationSettings.DefaultNotifyAboutDirectionAroundOnDropLandMessage);
+			ValidateLocalizationSetting(
+				settings.Localization.NotifyAboutDirectionAroundOnSupplyThrownMessage,
+				LocalizationSettings.DefaultNotifyAboutDirectionAroundOnSupplyThrownMessage);
+			ValidateLocalizationSetting(
+				settings.Localization.NotifyAboutPlayersAroundOnDropLandMessage,
+				LocalizationSettings.DefaultNotifyAboutPlayersAroundOnDropLandMessage);
+			ValidateLocalizationSetting(
+				settings.Localization.NotifyAboutPlayersAroundOnSupplyThrownMessage,
+				LocalizationSettings.DefaultNotifyAboutPlayersAroundOnSupplyThrownMessage);
+			ValidateLocalizationSetting(
+				settings.Localization.NotifyOnCollisionMessage,
+				LocalizationSettings.DefaultNotifyOnCollisionMessage);
+			ValidateLocalizationSetting(
+				settings.Localization.NotifyOnDespawnMessage,
+				LocalizationSettings.DefaultNotifyOnDespawnMessage);
+			ValidateLocalizationSetting(
+				settings.Localization.NotifyOnDropStartedMessage,
+				LocalizationSettings.DefaultNotifyOnDropStartedMessage);
+			ValidateLocalizationSetting(
+				settings.Localization.NotifyOnNextDropPositionMessage,
+				LocalizationSettings.DefaultNotifyOnNextDropPositionMessage);
+			ValidateLocalizationSetting(
+				settings.Localization.NotifyOnPlaneRemovedMessage,
+				LocalizationSettings.DefaultNotifyOnPlaneRemovedMessage);
+			ValidateLocalizationSetting(
+				settings.Localization.NotifyOnPlaneSpawnedMessage,
+				LocalizationSettings.DefaultNotifyOnPlaneSpawnedMessage);
+			ValidateLocalizationSetting(
+				settings.Localization.NotifyOnPlayerLootingStartedMessage,
+				LocalizationSettings.DefaultNotifyOnPlayerLootingStartedMessage);
+			ValidateLocalizationSetting(
+				settings.Localization.NotifyOnSupplySingalDisabledMessage,
+				LocalizationSettings.DefaultNotifyOnSupplySingalDisabledMessage);
+		}
+
+		private static void ValidateLocalizationSetting(string settings, string defaultMessage)
+		{
+			const string pattern = @"{(.*?)}";
+			var settingMatches = Regex.Matches(settings, pattern);
+			var settingMatchCount = settingMatches.Count;
+
+			var defaultMatches = Regex.Matches(defaultMessage, pattern);
+			var defaultMatchCount = defaultMatches.Count;
+
+			if (settingMatchCount > defaultMatchCount)
+				Diagnostics.Diagnostics.MessageToServer(
+				"\nYour localization string is incorrect:{0}.\nNumber of format parameters is insufficient.\nRemove {1} format parameters from your localization message.\nDefault message is:{2}",
+				settings,
+				settingMatchCount - defaultMatchCount,
+				defaultMessage);
 		}
 	}
 

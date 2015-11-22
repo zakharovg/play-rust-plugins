@@ -1,3 +1,4 @@
+using System;
 using System.Reflection;
 using UnityEngine;
 using System.Collections.Generic;
@@ -32,19 +33,34 @@ namespace Oxide.Plugins
 
 		bool Status = false;
 
-		void OnServerInitialized() { FakeOn(); }
+		void OnServerInitialized()
+		{
+			FakeOn();
+		}
 
 		void FakeOn()
 		{
+			var currentTime = DateTime.Now;
+			var minutes = currentTime.Minute;
+			if (minutes >= 0 && minutes <= 14)
+			{
+				var timeToStart = 14 - minutes;
+				timer.Once(timeToStart, FakeOn);
+				return;
+			}
+			
+			minutes = 60 - minutes;
+
 			Status = true;
-			//SteamGameServer.EnableHeartbeats(false);
+
 			int step = random.Next(MIN_STEP_FAKE, MAX_STEP_FAKE + 1);
 
 			FAKE_ONLINE = Mathf.Clamp(FAKE_ONLINE + step, MIN_FAKE_ONLINE, MAX_FAKE_ONLINE);
 			SteamGameServer.SetBotPlayerCount(FAKE_ONLINE);
 			_updateMethod.Invoke(ServerMgr.Instance, new object[0]);
 
-			timer.Once(50 * 60, () => FakeOff());
+
+			timer.Once(minutes * 60, FakeOff);
 			Puts("Fake online ON");
 		}
 
@@ -53,14 +69,14 @@ namespace Oxide.Plugins
 			SteamGameServer.SetBotPlayerCount(0);
 			_updateMethod.Invoke(ServerMgr.Instance, new object[0]);
 			Status = false;
-			timer.Once(10 * 60, () => FakeOn());
+			timer.Once(15 * 60, FakeOn);
 			Puts("Fake online OFF");
 		}
 
 		#region Logic
 		void BuildServerTags(IList<string> tags)
 		{
-			if (!Status) 
+			if (!Status)
 				return;
 
 			tags[1] = "cp" + FAKE_ONLINE.ToString();
