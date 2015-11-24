@@ -3,24 +3,23 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using EconomicsVip.Diagnostics;
 using EconomicsVip.Services;
 using EconomicsVip.Settings;
-using NLua;
 using Oxide.Core;
 using Oxide.Core.Configuration;
-using Oxide.Core.Logging;
-using Oxide.Core.Plugins;
+using Oxide.Core.Libraries;
+using Oxide.Core.Libraries.Covalence;
+using UnityEngine;
+using LogType = Oxide.Core.Logging.LogType;
 
 namespace Oxide.Plugins
 {
-	[Info("EconomicsVip", "baton", 0.1, ResourceId = 715)]
-	[Description("vip for economics")]
-	public sealed class EconomicsVip : RustPlugin
+	[Info("Vip", "baton", 0.1, ResourceId = 715)]
+	[Description("vip for lovely day")]
+	public sealed class Vip : RustPlugin
 	{
 		private static PluginSettings _settings;
-		private Plugin _economicsPlugin;
 		private static List<VipUserInfo> _vipUserList;
 
 		void OnServerInitialized()
@@ -28,12 +27,88 @@ namespace Oxide.Plugins
 			LoadConfig();
 			_settings = PluginSettingsRepository.Load(Config);
 
-			_economicsPlugin = plugins.Find("00-Economics");
+			var library = Interface.GetMod().GetLibrary<Permission>();
+			if (!library.PermissionExists("vip"))
+				library.RegisterPermission("vip", this);
+			if (!library.PermissionExists("donator"))
+				library.RegisterPermission("donator", this);
+
 			_vipUserList = Interface.Oxide.DataFileSystem.ReadObject<List<VipUserInfo>>("vipuserlist");
 			timer.Every(_settings.CheckVipTimerIntervalInSeconds, CheckUserList);
 
 			PluginSettingsRepository.Save(_settings, Config);
 			SaveConfig();
+		}
+
+		[ConsoleCommand("shopvip")]
+		private void AddVip(ConsoleSystem.Arg arg)
+		{
+			if (arg == null || !arg.HasArgs())
+				return;
+
+			var userId = arg.GetString(0);
+			if (string.IsNullOrEmpty(userId))
+			{
+				Puts("Vip: no userId");
+				return;
+			}
+
+			if (arg.Player() != null)
+			{
+				Puts("Vip: user param is present");
+				return;
+			}
+
+			ulong steamId;
+			if (!ulong.TryParse(userId, out steamId))
+			{
+				Puts("Vip: user id is not valid");
+				return;
+			}
+
+			var covalence = Interface.Oxide.GetLibrary<Covalence>();
+			var player = covalence.Players.GetPlayer(userId);
+			if (player == null)
+			{
+				Puts("Vip: covalence player not found");
+				return;
+			}
+
+			if (!permission.GroupExists(_settings.VipGroupName))
+			{
+				Puts("Vip: created group");
+				permission.CreateGroup(_settings.VipGroupName, _settings.VipGroupTitle, _settings.VipGroupRank);
+			}
+
+			if (permission.UserHasGroup(userId, _settings.VipGroupName))
+			{
+				Puts("Vip: user {0} is already in group", userId);
+			}
+
+			permission.AddUserGroup(userId, _settings.VipGroupName);
+			var user = _vipUserList.FirstOrDefault(u => u.UserId == steamId);
+			if (user == null)
+			{
+				_vipUserList.Add(new VipUserInfo
+				{
+					ExpirationDateString = DateTime.Now.AddSeconds(_settings.VipDurationInSeconds).ToString(),
+					UserId = steamId
+				});
+			}
+			else
+			{
+
+			}
+
+			var onlinePlayer = BasePlayer.FindByID(steamId);
+			Interface.Oxide.DataFileSystem.WriteObject("vipuserlist", _vipUserList);
+
+			if (onlinePlayer == null)
+			{
+				Puts("Vip: online player not found");
+				return;
+			}
+			Diagnostics.MessageToPlayer(onlinePlayer, "Ты стал VIP!");
 		}
 
 		private void CheckUserList()
@@ -44,7 +119,7 @@ namespace Oxide.Plugins
 			foreach (var vipUserInfo in _vipUserList)
 			{
 				var dateTime = DateTime.Parse(vipUserInfo.ExpirationDateString);
-				if(dateTime <= now)
+				if (dateTime <= now)
 					usersToRemove.Add(vipUserInfo);
 			}
 
@@ -58,82 +133,6 @@ namespace Oxide.Plugins
 
 			Interface.Oxide.DataFileSystem.WriteObject("vipuserlist", _vipUserList);
 		}
-
-		[ChatCommand("vip")]
-		private void VipCommand(BasePlayer player, string command, string[] args)
-		{
-			if (player == null)
-				return;
-
-			if (!permission.GroupExists(_settings.VipGroupName))
-				permission.CreateGroup(_settings.VipGroupName, _settings.VipGroupTitle, _settings.VipGroupRank);
-
-			var userInfo = _vipUserList.FirstOrDefault(u => u.UserId == player.userID);
-			if (userInfo != null)
-			{
-				var dateTime = DateTime.Parse(userInfo.ExpirationDateString);
-				Diagnostics.MessageToPlayer(player, "Your vip status expires at {0}", dateTime);
-				return;
-			}
-
-			var balance = GetBalance(player.userID);
-			if (balance < _settings.RequiredBalance)
-			{
-				Diagnostics.MessageToPlayer(player, "You do not have enough money: {0}.", _settings.RequiredBalance);
-				return;
-			}
-
-			var uid = Convert.ToString(player.userID);
-			permission.AddUserGroup(uid, _settings.VipGroupName);
-
-			_vipUserList.Add(new VipUserInfo { ExpirationDateString = DateTime.Now.AddSeconds(_settings.VipDurationInSeconds).ToString(), UserId = player.userID });
-			Interface.Oxide.DataFileSystem.WriteObject("vipuserlist", _vipUserList);
-			Diagnostics.MessageToPlayer(player, "You have become a vip!");
-		}
-
-		private double GetBalance(ulong uid)
-		{
-			var balance = -1.0d;
-			var result = (LuaTable)_economicsPlugin.CallHook("GetEconomyAPI");
-			foreach (var key in result.Keys)
-			{
-				if (key == null)
-					continue;
-
-				if (!key.ToString().Equals("GetUserData", StringComparison.OrdinalIgnoreCase))
-					continue;
-
-				var luaFunction = (LuaFunction)result[key];
-				var luaState = typeof (LuaFunction).GetField("_Interpreter",
-					BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-				Diagnostics.MessageToServer("lua state field:{0}", luaState == null);
-				var userdata = (LuaTable)luaFunction.Call(_economicsPlugin, uid.ToString())[0];
-
-				foreach (var k in userdata.Keys)
-				{
-					Diagnostics.MessageToServer("userdata has key:{0}", k.GetType());
-					//Lua.LuaGetMetatable()
-				}
-				Diagnostics.MessageToServer("userdata:{0}", userdata);
-				return 0;
-				//var balanceEnumerator = userdata.Values.GetEnumerator();
-				//if (!balanceEnumerator.MoveNext() || balanceEnumerator.Current == null)
-				//	balance = -1.0d;
-				//else
-				//{
-				//	try
-				//	{
-				//		balance = (double)balanceEnumerator.Current;
-				//	}
-				//	catch (Exception)
-				//	{
-				//		balance = -1.0d;
-				//	}
-				//}
-				//break;
-			}
-			return balance;
-		}
 	}
 }
 
@@ -142,7 +141,7 @@ namespace EconomicsVip.Settings
 	public sealed class PluginSettings
 	{
 		public const string DefaultGroupName = "vip";
-		public const int DefaultVipDurationInSeconds = 60*60*24*30;
+		public const int DefaultVipDurationInSeconds = 60 * 60 * 24 * 30;
 		public const int DefaultRequiredBalance = 1000;
 		public const int DefaultCheckVipTimerIntervalInSeconds = 300;
 
@@ -198,27 +197,27 @@ namespace EconomicsVip.Settings
 			var settings = new PluginSettings();
 			try
 			{
-				settings.VipGroupName = configFile.Get("VipGroupName") == null 
-					? PluginSettings.DefaultGroupName 
+				settings.VipGroupName = configFile.Get("VipGroupName") == null
+					? PluginSettings.DefaultGroupName
 					: configFile.Get("VipGroupName").ToString();
 
-				settings.RequiredBalance = configFile.Get("RequiredBalance") == null 
-					? PluginSettings.DefaultRequiredBalance 
+				settings.RequiredBalance = configFile.Get("RequiredBalance") == null
+					? PluginSettings.DefaultRequiredBalance
 					: int.Parse(configFile.Get("RequiredBalance").ToString());
 
-				settings.VipDurationInSeconds = configFile.Get("VipDurationInSeconds") == null 
+				settings.VipDurationInSeconds = configFile.Get("VipDurationInSeconds") == null
 					? PluginSettings.DefaultVipDurationInSeconds
 					: int.Parse(configFile.Get("VipDurationInSeconds").ToString());
 
-				settings.CheckVipTimerIntervalInSeconds = configFile.Get("CheckVipTimerIntervalInSeconds") == null 
+				settings.CheckVipTimerIntervalInSeconds = configFile.Get("CheckVipTimerIntervalInSeconds") == null
 					? PluginSettings.DefaultCheckVipTimerIntervalInSeconds
 					: int.Parse(configFile.Get("CheckVipTimerIntervalInSeconds").ToString());
 
-				settings.VipGroupRank = configFile.Get("VipGroupRank") == null 
+				settings.VipGroupRank = configFile.Get("VipGroupRank") == null
 					? 0
 					: int.Parse(configFile.Get("VipGroupRank").ToString());
 
-				settings.VipGroupTitle = configFile.Get("VipGroupTitle") == null 
+				settings.VipGroupTitle = configFile.Get("VipGroupTitle") == null
 					? PluginSettings.DefaultGroupName
 					: configFile.Get("VipGroupTitle").ToString();
 			}

@@ -135,11 +135,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="FakeOnline.cs" />
+    <Compile Include="ServerListInfo.cs" />
     <Compile Include="TwigsDecay.cs" />
     <Compile Include="AirdropExtended.cs" />
     <Compile Include="Clans.cs" />
     <Compile Include="ClansUI.cs" />
-    <Compile Include="EconomicsVip.cs" />
+    <Compile Include="Vip.cs" />
     <Compile Include="HowIDied.cs" />
     <Compile Include="LustyMap.cs" />
     <Compile Include="PrintItemNames.cs" />

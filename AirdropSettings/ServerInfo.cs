@@ -19,13 +19,13 @@ namespace Oxide.Plugins
 		private static Settings _settings;
 		private static readonly Dictionary<ulong, PlayerInfoState> PlayerActiveTabs = new Dictionary<ulong, PlayerInfoState>();
 		private static readonly Permission Permission = Interface.GetMod().GetLibrary<Permission>();
-		private static bool _errorLoading = false;
+		private static bool _errorLoading;
 
 		private void OnServerInitialized()
 		{
 			OnError += (sender, message) => _errorLoading = true;
 			LoadConfig();
-			if(_errorLoading)
+			if (_errorLoading)
 			{
 				Puts("ServerInfo: Failed to load config");
 				return;
@@ -331,21 +331,17 @@ namespace Oxide.Plugins
 		{
 			Color backgroundColor;
 			ColorExtensions.TryParseHexString(_settings.BackgroundColor, out backgroundColor);
-			var mainPanel = new CuiPanel
-			{
-				Image =
-				{
-					Color = backgroundColor.ToRustFormatString()
-				},
-				CursorEnabled = true,
-				RectTransform =
-				{
-					AnchorMin = _settings.Position.GetRectTransformAnchorMin(),
-					AnchorMax = _settings.Position.GetRectTransformAnchorMax()
-				}
-			};
+			var tabContentPanelName = CuiHelper.GetGuid();
 
-			var tabContentPanelName = container.Add(mainPanel);
+			var transform = new CuiRectTransformComponent
+			{
+				AnchorMin = _settings.Position.GetRectTransformAnchorMin(),
+				AnchorMax = _settings.Position.GetRectTransformAnchorMax()
+			};
+			var element = CreatePanelWithBackground(tabContentPanelName, backgroundColor, transform);
+			element.Components.Add(new CuiNeedsCursorComponent());
+
+			container.Add(element);
 			if (!_settings.BackgroundImage.Enabled)
 				return tabContentPanelName;
 
@@ -354,6 +350,25 @@ namespace Oxide.Plugins
 			container.Add(backgroundImage);
 
 			return tabContentPanelName;
+		}
+
+		private static CuiElement CreatePanelWithBackground(
+			string tabContentPanelName, 
+			Color backgroundColor, 
+			CuiRectTransformComponent transform,
+			string parent = "HUD/Overlay")
+		{
+			var element = new CuiElement
+			{
+				Name = tabContentPanelName,
+				Parent = parent
+			};
+			element.Components.Add(new CuiImageComponent
+			{
+				Color = backgroundColor.ToRustFormatString()
+			});
+			element.Components.Add(transform);
+			return element;
 		}
 
 		private static CuiElement CreateImage(string panelName, ImageSettings settings)
@@ -455,19 +470,16 @@ namespace Oxide.Plugins
 			Color backgroundColor;
 			ColorExtensions.TryParseHexString(hexColor, out backgroundColor);
 
-			return container.Add(new CuiPanel
+			var tabContentPanelName = CuiHelper.GetGuid();
+			var transform = new CuiRectTransformComponent
 			{
-				CursorEnabled = false,
-				Image =
-				{
-					Color = backgroundColor.ToRustFormatString(),
-				},
-				RectTransform =
-				{
-					AnchorMin = "0 0",
-					AnchorMax = "0.86 1"
-				}
-			}, mainPanelName);
+				AnchorMin = "0 0",
+				AnchorMax = "0.86 1"
+			};
+			var panel = CreatePanelWithBackground(tabContentPanelName, backgroundColor, transform, mainPanelName);
+
+			container.Add(panel);
+			return tabContentPanelName;
 		}
 
 		private static CuiLabel CreateHeaderLabel(HelpTab helpTab)
