@@ -15,15 +15,10 @@ namespace Oxide.Plugins
 		// Стартовое значение фейкового онлайна
 		static int FAKE_ONLINE = 121;
 
-		// Максимальный возможный фейк онлайн
-		const int MAX_FAKE_ONLINE = 130;
-		// Минимальный возможный фейк онлайн
-		const int MIN_FAKE_ONLINE = 120;
-
 		// Максимальное изменение онлайна, при обновлении
-		const int MAX_STEP_FAKE = 5;
+		const int MAX_STEP_FAKE = 20;
 		// Минимальное изменение онлайна, при обновлении
-		const int MIN_STEP_FAKE = -5;
+		const int MIN_STEP_FAKE = 10;
 
 		#region Vars
 
@@ -55,10 +50,9 @@ namespace Oxide.Plugins
 
 			int step = random.Next(MIN_STEP_FAKE, MAX_STEP_FAKE + 1);
 
-			FAKE_ONLINE = Mathf.Clamp(FAKE_ONLINE + step, MIN_FAKE_ONLINE, MAX_FAKE_ONLINE);
+			FAKE_ONLINE = BasePlayer.activePlayerList.Count + step;
 			SteamGameServer.SetBotPlayerCount(FAKE_ONLINE);
 			_updateMethod.Invoke(ServerMgr.Instance, new object[0]);
-
 
 			timer.Once(minutes * 60, FakeOff);
 			Puts("Fake online ON");
