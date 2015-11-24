@@ -12,7 +12,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-	[Info("ServerInfo", "baton", "0.4.1", ResourceId = 1317)]
+	[Info("ServerInfo", "baton", "0.4.1	", ResourceId = 1317)]
 	[Description("UI customizable server info with multiple tabs.")]
 	public sealed class ServerInfo : RustPlugin
 	{
@@ -518,7 +518,7 @@ namespace Oxide.Plugins
 				},
 				Text =
 				{
-					Text = "Закрыть",
+					Text = _settings.CloseButtonText,
 					FontSize = 18,
 					Align = TextAnchor.MiddleCenter
 				}
@@ -588,7 +588,7 @@ namespace Oxide.Plugins
 				},
 				Text =
 				{
-					Text = "Назад",
+					Text = _settings.PrevPageText,
 					FontSize = 18,
 					Align = TextAnchor.MiddleCenter
 				}
@@ -613,7 +613,7 @@ namespace Oxide.Plugins
 				},
 				Text =
 				{
-					Text = "Дальше",
+					Text = _settings.NextPageText,
 					FontSize = 18,
 					Align = TextAnchor.MiddleCenter
 				}
@@ -710,6 +710,10 @@ namespace ServerInfo
 			BackgroundColor = "#" + new Color(0f, 0f, 0f, 1.0f).ToHexStringRGBA();
 			HelpButton = new HelpButtonSettings();
 
+			CloseButtonText = "Close";
+			PrevPageText = "Back";
+			NextPageText = "Next";
+
 			BackgroundImage = new BackgroundImageSettings();
 		}
 
@@ -726,6 +730,9 @@ namespace ServerInfo
 		public string NextPageButtonColor { get; set; }
 		public string PrevPageButtonColor { get; set; }
 		public string BackgroundColor { get; set; }
+		public string CloseButtonText { get; set; }
+		public string PrevPageText { get; set; }
+		public string NextPageText { get; set; }
 
 		public HelpButtonSettings HelpButton { get; set; }
 
