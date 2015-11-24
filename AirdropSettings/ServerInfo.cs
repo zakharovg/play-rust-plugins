@@ -12,7 +12,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-	[Info("ServerInfo", "baton", "0.4.0", ResourceId = 1317)]
+	[Info("ServerInfo", "baton", "0.4.1", ResourceId = 1317)]
 	[Description("UI customizable server info with multiple tabs.")]
 	public sealed class ServerInfo : RustPlugin
 	{
@@ -23,6 +23,7 @@ namespace Oxide.Plugins
 
 		private void OnServerInitialized()
 		{
+			_errorLoading = false;
 			OnError += (sender, message) => _errorLoading = true;
 			LoadConfig();
 			if (_errorLoading)
@@ -272,7 +273,7 @@ namespace Oxide.Plugins
 				ShowInfo(player, string.Empty, null);
 		}
 
-		[ChatCommand("info")]
+		[ChatCommand("help")]
 		private void ShowInfo(BasePlayer player, string command, string[] args)
 		{
 			if (player == null || _settings == null)
@@ -283,6 +284,7 @@ namespace Oxide.Plugins
 
 			var container = new CuiElementContainer();
 			var mainPanelName = AddMainPanel(container);
+
 			PlayerActiveTabs[player.userID].MainPanelName = mainPanelName;
 
 			var tabToSelectIndex = _settings.TabToOpenByDefault;
@@ -353,8 +355,8 @@ namespace Oxide.Plugins
 		}
 
 		private static CuiElement CreatePanelWithBackground(
-			string tabContentPanelName, 
-			Color backgroundColor, 
+			string tabContentPanelName,
+			Color backgroundColor,
 			CuiRectTransformComponent transform,
 			string parent = "HUD/Overlay")
 		{
@@ -450,19 +452,16 @@ namespace Oxide.Plugins
 			Color backgroundColor;
 			ColorExtensions.TryParseHexString(hexColor, out backgroundColor);
 
-			return container.Add(new CuiPanel
+			var tabPanelName = CuiHelper.GetGuid();
+			var transform = new CuiRectTransformComponent
 			{
-				CursorEnabled = false,
-				Image =
-				{
-					Color = backgroundColor.ToRustFormatString(),
-				},
-				RectTransform =
-				{
-					AnchorMin = "0.22 0.01",
-					AnchorMax = "0.99 0.98"
-				}
-			}, mainPanelName);
+				AnchorMin = "0.22 0.01",
+				AnchorMax = "0.99 0.98"
+			};
+			var tabPanel = CreatePanelWithBackground(tabPanelName, backgroundColor, transform, mainPanelName);
+
+			container.Add(tabPanel);
+			return tabPanelName;
 		}
 
 		private static string CreateTabContentPanel(CuiElementContainer container, string mainPanelName, string hexColor)
@@ -519,7 +518,7 @@ namespace Oxide.Plugins
 				},
 				Text =
 				{
-					Text = "Close",
+					Text = "Закрыть",
 					FontSize = 18,
 					Align = TextAnchor.MiddleCenter
 				}
@@ -589,7 +588,7 @@ namespace Oxide.Plugins
 				},
 				Text =
 				{
-					Text = "Prev Page",
+					Text = "Назад",
 					FontSize = 18,
 					Align = TextAnchor.MiddleCenter
 				}
@@ -614,7 +613,7 @@ namespace Oxide.Plugins
 				},
 				Text =
 				{
-					Text = "Next Page",
+					Text = "Дальше",
 					FontSize = 18,
 					Align = TextAnchor.MiddleCenter
 				}
@@ -1048,13 +1047,13 @@ namespace ServerInfo.Extensions
 		public static string ToHexStringRGB(this Color col)
 		{
 			Color32 color = col;
-			return string.Format("{0}{1}{2}", color.r, color.g, color.b);
+			return string.Format("{0:X}{1:X}{2:X}", color.r, color.g, color.b);
 		}
 
 		public static string ToHexStringRGBA(this Color col)
 		{
 			Color32 color = col;
-			return string.Format("{0}{1}{2}{3}", color.r, color.g, color.b, color.a);
+			return string.Format("{0:X}{1:X}{2:X}{3:X}", color.r, color.g, color.b, color.a);
 		}
 
 		public static bool TryParseHexString(string hexString, out Color color)
