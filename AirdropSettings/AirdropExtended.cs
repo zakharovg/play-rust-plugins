@@ -757,7 +757,7 @@ namespace AirdropExtended.Diagnostics
 		public static void MessageToAll(string message, params object[] args)
 		{
 			var msg = string.Format(Format, Color, Prefix) + string.Format(message, args);
-			ConsoleSystem.Broadcast("chat.add \"SERVER\" " + StringExtensions.QuoteSafe(msg) + " 1.0", new object[0]);
+			ConsoleSystem.Broadcast("chat.add \"SERVER\" " + msg.Quote() + " 1.0", new object[0]);
 		}
 
 		public static void MessageToServer(string message, params object[] args)
@@ -831,7 +831,7 @@ namespace AirdropExtended.Commands
 				return;
 			}
 
-			var commandString = args.Aggregate(command, (s, s1) => s + " " + StringExtensions.QuoteSafe(s1));
+			var commandString = args.Aggregate(command, (s, s1) => s + " " + s1.Quote());
 			Diagnostics.Diagnostics.MessageToServer("'{0}' called by {1}", commandString, player.displayName);
 			var commandArgs = new ConsoleSystem.Arg(commandString);
 			ExecuteInternal(commandArgs, player);

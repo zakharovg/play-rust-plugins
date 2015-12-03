@@ -135,6 +135,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="FakeOnline.cs" />
+    <Compile Include="Reclaimer.cs" />
     <Compile Include="ServerListInfo.cs" />
     <Compile Include="TwigsDecay.cs" />
     <Compile Include="AirdropExtended.cs" />
