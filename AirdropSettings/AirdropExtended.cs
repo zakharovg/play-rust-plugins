@@ -32,7 +32,7 @@ using Timer = Oxide.Core.Libraries.Timer;
 
 namespace Oxide.Plugins
 {
-	[Info(Constants.PluginName, "baton", "1.0.3", ResourceId = 1210)]
+	[Info(Constants.PluginName, "baton", "1.0.4", ResourceId = 1210)]
 	[Description("Customizable airdrop")]
 	public class AirdropExtended : RustPlugin
 	{
