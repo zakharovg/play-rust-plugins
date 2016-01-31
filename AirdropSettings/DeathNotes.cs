@@ -792,7 +792,7 @@ namespace Oxide.Plugins
             
             message = message.Replace("{attacker}", $"<color={GetConfig("#C4FF00", "Settings", "Attacker Color")}>{data.attacker.name}</color>");
             message = message.Replace("{victim}", $"<color={GetConfig("#C4FF00", "Settings", "Victim Color")}>{data.victim.name}</color>");
-            message = message.Replace("{distance}", $"<color={GetConfig("#C4FF00", "Settings", "Distance Color")}>{Math.Round(data.distance, 2).ToString()}</color>");
+            message = message.Replace("{distance}", $"<color={GetConfig("#C4FF00", "Settings", "Distance Color")}>{Math.Round(data.distance, 0).ToString()}</color>");
             message = message.Replace("{weapon}", $"<color={GetConfig("#C4FF00", "Settings", "Weapon Color")}>{data.weapon}</color>");
             message = message.Replace("{bodypart}", $"<color={GetConfig("#C4FF00", "Settings", "Bodypart Color")}>{data.bodypart}</color>");
             message = message.Replace("{attachments}", $"<color={GetConfig("#C4FF00", "Settings", "Attachments Color")}>{attachmentsString}</color>");
