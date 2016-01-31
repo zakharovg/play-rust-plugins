@@ -10,7 +10,6 @@ using EconomicsVip.Settings;
 using Oxide.Core;
 using Oxide.Core.Configuration;
 using Oxide.Core.Libraries;
-using Oxide.Core.Libraries.Covalence;
 using UnityEngine;
 using LogType = Oxide.Core.Logging.LogType;
 
@@ -76,7 +75,6 @@ namespace Oxide.Plugins
 				return;
 			}
 
-			var covalence = Interface.Oxide.GetLibrary<Covalence>();
 			var player = covalence.Players.GetPlayer(userId);
 			if (player == null)
 			{
@@ -198,9 +196,9 @@ namespace EconomicsVip.Settings
 			var settings = new PluginSettings();
 			try
 			{
-				settings.VipGroupName = configFile.Get("VipGroupName") == null
+				settings.VipGroupName = configFile.Get("GroupName") == null
 					? PluginSettings.DefaultGroupName
-					: configFile.Get("VipGroupName").ToString();
+					: configFile.Get("GroupName").ToString();
 
 				settings.CheckVipTimerIntervalInSeconds = configFile.Get("CheckVipTimerIntervalInSeconds") == null
 					? PluginSettings.DefaultCheckVipTimerIntervalInSeconds
@@ -219,7 +217,7 @@ namespace EconomicsVip.Settings
 			if (settings == null) throw new ArgumentNullException("settings");
 			if (config == null) throw new ArgumentNullException("config");
 
-			config["VipGroupName"] = settings.VipGroupName;
+			config["GroupName"] = settings.VipGroupName;
 			config["CheckVipTimerIntervalInSeconds"] = settings.CheckVipTimerIntervalInSeconds;
 		}
 	}

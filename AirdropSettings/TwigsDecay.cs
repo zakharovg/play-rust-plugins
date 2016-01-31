@@ -1,12 +1,8 @@
 using System.Linq;
 using Rust;
-using Rust;
 using System;
 using System.Collections.Generic;
-using System.Reflection;
-using System.Text;
 using UnityEngine;
-using Debug = System.Diagnostics.Debug;
 
 namespace Oxide.Plugins
 {
@@ -26,11 +22,9 @@ namespace Oxide.Plugins
 			Puts("Создан файл конфигурации по умолчанию");
 			var buildingBlocks = new List<object>()
 			{
-				"assets/bundled/prefabs/build/floor.prefab",
-				"assets/bundled/prefabs/build/floor.triangle.prefab",
-				"assets/bundled/prefabs/build/foundation.prefab",
-				"assets/bundled/prefabs/build/foundation.steps.prefab",
-				"assets/bundled/prefabs/build/foundation.triangle.prefab"
+				"assets/prefabs/building core/foundation.steps/foundation.steps.prefab",
+				"assets/prefabs/building core/foundation.triangle/foundation.triangle.prefab",
+				"assets/prefabs/building core/foundation/foundation.prefab"
 			};
 			Config["BuildingBlocks"] = buildingBlocks;
 			var buildingBlocksDamage = new Dictionary<string, object>()
@@ -41,39 +35,74 @@ namespace Oxide.Plugins
 				{"Metal", 2}, // health: 300
 				{"TopTier", 3} // health: 1000
 			};
+
 			Config["BuildingBlocksDamage"] = buildingBlocksDamage;
-			var itemList = new Dictionary<string, object>()
+			var itemList = new Dictionary<string, object>
 			{
-				{"assets/bundled/prefabs/items/cupboard.tool.deployed.prefab", 31}, // health: 500
-				{"assets/bundled/prefabs/items/large_woodbox_deployed.prefab", 18}, // health: 300
-				{"assets/bundled/prefabs/items/sleepingbag_leather_deployed.prefab", 12}, // health: 200
-				{"assets/bundled/prefabs/items/woodbox_deployed.prefab", 9}, // health: 150
-				{"assets/bundled/prefabs/items/campfire_deployed.prefab", 12}, // health: 50
-				{"assets/bundled/prefabs/items/furnace_deployed.prefab", 23}, // health: 500
-				{"assets/bundled/prefabs/items/lantern_deployed.prefab", 3}, // health: 50
-				{"assets/bundled/prefabs/items/researchtable_deployed.prefab", 9}, // health: 200
-				{"assets/bundled/prefabs/items/repairbench_deployed.prefab", 9}, // health: 200
-				{"assets/bundled/prefabs/items/ladders/ladder.wooden.wall.prefab", 3}, // health: 50
-				{"assets/bundled/prefabs/items/beartrap.prefab", 12}, // health: 200
-				{"assets/bundled/prefabs/items/floor_spikes.prefab", 3}, // health: 50
-				{"assets/bundled/prefabs/items/barricades/barricade.sandbags.prefab", 6}, // health: 100
-				{"assets/bundled/prefabs/items/barricades/barricade.metal.prefab", 37}, // health: 600
-				{"assets/bundled/prefabs/items/barricades/barricade.stone.prefab", 6}, // health: 100
-				{"assets/bundled/prefabs/items/barricades/barricade.woodwire.prefab", 25}, // health: 400
-				{"assets/bundled/prefabs/items/barricades/barricade.wood.prefab", 12}, // health: 200
-				{"assets/bundled/prefabs/items/barricades/barricade.concrete.prefab", 12}, // health: 200
-				{"assets/bundled/prefabs/signs/sign.medium.wood.prefab", 6}, // health: 100
-				{"assets/bundled/prefabs/signs/sign.large.wood.prefab", 9}, // health: 150
-				{"assets/bundled/prefabs/signs/sign.huge.wood.prefab", 12}, // health: 200
-				{"assets/bundled/prefabs/signs/sign.small.wood.prefab", 3} // health: 50
+				{"assets/prefabs/building/gates.external.high/gates.external.high.stone/gates.external.high.stone.prefab", 25 }, //2000
+				{"assets/prefabs/building/gates.external.high/gates.external.high.wood/gates.external.high.wood.prefab",   20 }, //1500
+				{"assets/prefabs/building/ladder.wall.wood/ladder.wooden.wall.prefab",									   4 }, //100
+				{"assets/prefabs/building/wall.external.high.stone/wall.external.high.stone.prefab",					   25 }, //2000
+				{"assets/prefabs/building/wall.external.high.wood/wall.external.high.wood.prefab",						   20 }, //1500
+				{"assets/prefabs/deployable/barricades/barricade.concrete.prefab",										   12 }, //200
+				{"assets/prefabs/deployable/barricades/barricade.metal.prefab",											   24 }, //600
+				{"assets/prefabs/deployable/barricades/barricade.sandbags.prefab",										   6 }, //100
+				{"assets/prefabs/deployable/barricades/barricade.stone.prefab",											   6 }, //100
+				{"assets/prefabs/deployable/barricades/barricade.wood.prefab",											   12 }, //200
+				{"assets/prefabs/deployable/barricades/barricade.woodwire.prefab",										   18 }, //400
+				{"assets/prefabs/deployable/bear trap/beartrap.prefab",													   12 }, //200
+				{"assets/prefabs/deployable/campfire/campfire.prefab",													   3 }, //50
+				{"assets/prefabs/deployable/floor spikes/spikes.floor.prefab",											   3 }, //50
+				{"assets/prefabs/deployable/furnace.large/furnace.large.prefab",										   15 }, //1500
+				{"assets/prefabs/deployable/furnace/furnace.prefab",													   7 }, //500
+				{"assets/prefabs/deployable/jack o lantern/jackolantern.angry.prefab",									   15 },
+				{"assets/prefabs/deployable/jack o lantern/jackolantern.happy.prefab",									   15 },
+				{"assets/prefabs/deployable/landmine/landmine.prefab",													   3 }, //50
+				{"assets/prefabs/deployable/lantern/lantern.deployed.prefab",											   3 }, //50
+				{"assets/prefabs/deployable/woodenbox/woodbox_deployed.prefab",											   7 }, //150
+				{"assets/prefabs/deployable/large wood storage/box.wooden.large.prefab",								   12 }, //300
+				{"assets/prefabs/deployable/repair bench/repairbench_deployed.prefab",									   9 }, //200
+				{"assets/prefabs/deployable/research table/researchtable_deployed.prefab",								   9 }, //200
+				{"assets/prefabs/deployable/signs/sign.hanging.banner.large.prefab",									   6 }, 
+				{"assets/prefabs/deployable/signs/sign.hanging.ornate.prefab",											   6 },
+				{"assets/prefabs/deployable/signs/sign.hanging.prefab",													   6 },
+				{"assets/prefabs/deployable/signs/sign.huge.wood.prefab",												   6 },
+				{"assets/prefabs/deployable/signs/sign.large.wood.prefab",												   6 },
+				{"assets/prefabs/deployable/signs/sign.medium.wood.prefab",												   3 },
+				{"assets/prefabs/deployable/signs/sign.pictureframe.landscape.prefab",									   3 },
+				{"assets/prefabs/deployable/signs/sign.pictureframe.portrait.prefab",									   3 },
+				{"assets/prefabs/deployable/signs/sign.pictureframe.tall.prefab",										   3 },
+				{"assets/prefabs/deployable/signs/sign.pictureframe.xl.prefab",											   3 },
+				{"assets/prefabs/deployable/signs/sign.pictureframe.xxl.prefab",										   3 },
+				{"assets/prefabs/deployable/signs/sign.pole.banner.large.prefab",										   6 },
+				{"assets/prefabs/deployable/signs/sign.post.double.prefab",												   3 },
+				{"assets/prefabs/deployable/signs/sign.post.single.prefab",												   6 },
+				{"assets/prefabs/deployable/signs/sign.post.town.prefab",												   6 },
+				{"assets/prefabs/deployable/signs/sign.post.town.roof.prefab",											   6 },
+				{"assets/prefabs/deployable/signs/sign.small.wood.prefab",												   3 },
+
+				{"assets/prefabs/deployable/sleeping bag/sleepingbag_deployed.prefab",									   12 }, //200
+				{"assets/prefabs/deployable/sleeping bag/sleepingbag_leather_deployed.prefab",							   12 }, //200
+
+				{"assets/prefabs/deployable/water catcher/water_catcher_large.prefab",									   12 }, //200
+				{"assets/prefabs/deployable/water catcher/water_catcher_small.prefab",									   3 }, //50
+
+				{"assets/prefabs/misc/burlap sack/generic_world.prefab",												   100 },
+				{"assets/prefabs/npc/bear/bear_corpse.prefab",															   100 },
+				{"assets/prefabs/npc/boar/boar_corpse.prefab",															   100 },
+				{"assets/prefabs/npc/chicken/chicken_corpse.prefab",													   100 },
+				{"assets/prefabs/npc/horse/horse_corpse.prefab",														   100 },
+				{"assets/prefabs/npc/stag/stag_corpse.prefab",															   100 },
+				{"assets/prefabs/npc/wolf/wolf_corpse.prefab",															   100 },
+				{"assets/prefabs/player/player_corpse.prefab}",															   100 },
 			};
+
 			Config["ItemsName/Damage"] = itemList;
 			var messages = new Dictionary<string, object>();
-			messages.Add("ChatFormat", "<size=16><color=#aaffaa>RusTme.ru</color></size>: {0}");
-			messages.Add("TaskStart", "Запущена очистка карты от ненужных объектов. <color=#ffaaaa>Возможны небольшие подвисания!</color>");
-			messages.Add("TaskEnd", "Очистка карты завершена. Обработанно объектов: <color=#ffaaaa>{0}</color> Разрушенно объектов: <color=#ffaaaa>{1}</color>");
+			//messages.Add("TaskStart", "Очищаем карту от ненужных объектов. <color=#ffaaaa>Возможны небольшие подвисания!</color>");
+			//messages.Add("TaskEnd", "Очистка карты завершена. Обработанно объектов: <color=#ffaaaa>{0}</color> Разрушенно объектов: <color=#ffaaaa>{1}</color>");
 			Config["Messages"] = messages;
-			Config["DecayIntervalInHours"] = 3;
+			Config["DecayIntervalInHours"] = 1;
 			Config["MultiplierDamageBlocksWithoutCupboard"] = 5;
 		}
 
@@ -91,7 +120,7 @@ namespace Oxide.Plugins
 				var messagesConfig = (Dictionary<string, object>)Config["Messages"];
 				foreach (var cfg in messagesConfig) messages[cfg.Key] = Convert.ToString(cfg.Value);
 				decayInterval = Convert.ToInt32(Config["DecayIntervalInHours"]);
-				if (decayInterval <= 0) decayInterval = 3;
+				if (decayInterval <= 0) decayInterval = 1;
 				multiDamage = Convert.ToInt32(Config["MultiplierDamageBlocksWithoutCupboard"]);
 				timerTwigs = timer.Repeat((decayInterval * 3600), 0, TwigsStart);
 				if (ConVar.Decay.scale > 0f) ConVar.Decay.scale = 0f;
@@ -104,7 +133,7 @@ namespace Oxide.Plugins
 
 		private void TwigsStart()
 		{
-			MessageToAll(messages["TaskStart"]);
+			//MessageToAll(messages["TaskStart"]);
 
 			int entitesCheck = 0;
 			int entitesDestroyed = 0;
@@ -120,11 +149,11 @@ namespace Oxide.Plugins
 				entitesCheck++;
 				entityName = entity.name;
 
-				if (entityName.Contains("items"))
+				if (entityName.Contains("tool cupboard"))
 				{
 					if (itemList.TryGetValue(entityName, out amount) && amount != 0)
 					{
-						if (entityName == "assets/bundled/prefabs/items/cupboard.tool.deployed.prefab")
+						if (entityName == "assets/prefabs/deployable/tool cupboard/cupboard.tool.deployed.prefab")
 						{
 							if (FindBuildingBlockSphere(entity.transform.position, 4))
 								continue;
@@ -178,7 +207,7 @@ namespace Oxide.Plugins
 			var allColliders = Physics.OverlapSphere(position, radius);
 			foreach (Collider collider in allColliders)
 			{
-				if (collider.name == "assets/bundled/prefabs/items/cupboard.tool.deployed.prefab")
+				if (collider.name == "assets/prefabs/deployable/tool cupboard/cupboard.tool.deployed.prefab")
 					return true;
 			}
 			return false;

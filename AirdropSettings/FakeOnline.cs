@@ -49,7 +49,7 @@ namespace Oxide.Plugins
 			Status = true;
 
 			int step = random.Next(MIN_STEP_FAKE, MAX_STEP_FAKE + 1);
-
+			var clamp = Mathx.Clamp(step, MIN_STEP_FAKE, MAX_STEP_FAKE);
 			FAKE_ONLINE = BasePlayer.activePlayerList.Count + step;
 			SteamGameServer.SetBotPlayerCount(FAKE_ONLINE);
 			_updateMethod.Invoke(ServerMgr.Instance, new object[0]);

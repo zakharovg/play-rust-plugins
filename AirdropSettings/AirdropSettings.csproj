@@ -134,7 +134,10 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BPFragmentReduce.cs" />
+    <Compile Include="EnhancedHammer.cs" />
     <Compile Include="FakeOnline.cs" />
+    <Compile Include="LootConfig.cs" />
     <Compile Include="Reclaimer.cs" />
     <Compile Include="ServerListInfo.cs" />
     <Compile Include="TwigsDecay.cs" />

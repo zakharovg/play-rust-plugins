@@ -32,7 +32,7 @@ using Timer = Oxide.Core.Libraries.Timer;
 
 namespace Oxide.Plugins
 {
-	[Info(Constants.PluginName, "baton", "1.0.4", ResourceId = 1210)]
+	[Info(Constants.PluginName, "baton", "1.0.5", ResourceId = 1210)]
 	[Description("Customizable airdrop")]
 	public class AirdropExtended : RustPlugin
 	{
@@ -116,7 +116,7 @@ namespace Oxide.Plugins
 				_airdropController.OnEntitySpawned(entity);
 		}
 
-		private void OnWeaponThrown(BasePlayer player, BaseEntity entity)
+		private void OnExplosiveThrown(BasePlayer player, BaseEntity entity)
 		{
 			if (entity is SupplySignal)
 				_airdropController.OnSupplySignal(player, entity);
