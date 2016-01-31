@@ -276,14 +276,36 @@ namespace Oxide.Plugins
 		}
 
 		// Finds a player by partial name
-		private IPlayer FindPlayerByPartialName(string name)
+		private BasePlayer FindPlayerByPartialName(string name)
 		{
 			if (string.IsNullOrEmpty(name))
 				return null;
-
+			BasePlayer player = null;
 			name = name.ToLower();
-			var covalence = Interface.Oxide.GetLibrary<Covalence>();
-			return covalence.Players.FindPlayer(name);
+			var allPlayers = BasePlayer.activePlayerList.ToArray();
+			// Try to find an exact match first
+			foreach (var p in allPlayers)
+			{
+				if (p.displayName == name)
+				{
+					if (player != null)
+						return null; // Not unique
+					player = p;
+				}
+			}
+			if (player != null)
+				return player;
+			// Otherwise try to find a partial match
+			foreach (var p in allPlayers)
+			{
+				if (p.displayName.ToLower().IndexOf(name) >= 0)
+				{
+					if (player != null)
+						return null; // Not unique
+					player = p;
+				}
+			}
+			return player;
 		}
 
 		// Strips the tag from a player's name
@@ -638,21 +660,20 @@ namespace Oxide.Plugins
 						sb.Append(_("No such player or player name not unique:")).Append(" ").Append(args[1]);
 						break;
 					}
-					var invUserId = invPlayer.UniqueID.ToString();
-					if (myClan.members.Contains(invUserId))
+					if (myClan.members.Contains(invPlayer.UserIDString))
 					{
-						sb.Append(_("This player is already a member of your clan:")).Append(" ").Append(invPlayer.Nickname);
+						sb.Append(_("This player is already a member of your clan:")).Append(" ").Append(invPlayer.displayName);
 						break;
 					}
-					if (myClan.invited.Contains(invUserId))
+					if (myClan.invited.Contains(invPlayer.UserIDString))
 					{
-						sb.Append(_("This player has already been invited to your clan:")).Append(" ").Append(invPlayer.Nickname);
+						sb.Append(_("This player has already been invited to your clan:")).Append(" ").Append(invPlayer.displayName);
 						break;
 					}
-					myClan.invited.Add(invUserId);
+					myClan.invited.Add(invPlayer.UserIDString);
 					SaveData();
-					myClan.Broadcast(_("%MEMBER% invited %PLAYER% to the clan.", new Dictionary<string, string>() { { "MEMBER", StripTag(player.displayName, myClan) }, { "PLAYER", invPlayer.Nickname } }));
-					var basePlayer = BasePlayer.FindByID(ulong.Parse(invPlayer.UniqueID));
+					myClan.Broadcast(_("%MEMBER% invited %PLAYER% to the clan.", new Dictionary<string, string>() { { "MEMBER", StripTag(player.displayName, myClan) }, { "PLAYER", invPlayer.UserIDString } }));
+					var basePlayer = BasePlayer.FindByID(ulong.Parse(invPlayer.UserIDString));
 					basePlayer.SendConsoleCommand("chat.add", "",
 						_("You have been invited to join the clan:") + " [" + myClan.tag + "] " + myClan.description + "\n" +
 						_("To join, type: <color=#ffd479>/clan join \"%TAG%\"</color>", new Dictionary<string, string>() { { "TAG", myClan.tag } }));
@@ -716,20 +737,20 @@ namespace Oxide.Plugins
 						sb.Append(_("No such player or player name not unique:") + " " + args[1]);
 						break;
 					}
-					var promotePlayerUserId = promotePlayer.UniqueID;
+					var promotePlayerUserId = promotePlayer.UserIDString;
 					if (!myClan.IsMember(promotePlayerUserId))
 					{
-						sb.Append(_("This player is not a member of your clan:") + " " + promotePlayer.Nickname);
+						sb.Append(_("This player is not a member of your clan:") + " " + promotePlayer.displayName);
 						break;
 					}
 					if (myClan.IsModerator(promotePlayerUserId))
 					{
-						sb.Append(_("This player is already a moderator of your clan:") + " " + promotePlayer.Nickname);
+						sb.Append(_("This player is already a moderator of your clan:") + " " + promotePlayer.displayName);
 						break;
 					}
 					myClan.moderators.Add(promotePlayerUserId);
 					SaveData();
-					myClan.Broadcast(_("%OWNER% promoted %MEMBER% to moderator.", new Dictionary<string, string> { { "OWNER", StripTag(player.displayName, myClan) }, { "MEMBER", StripTag(promotePlayer.Nickname, myClan) } }));
+					myClan.Broadcast(_("%OWNER% promoted %MEMBER% to moderator.", new Dictionary<string, string> { { "OWNER", StripTag(player.displayName, myClan) }, { "MEMBER", StripTag(promotePlayer.displayName, myClan) } }));
 					break;
 				case "demote":
 					if (args.Length != 2)
@@ -753,20 +774,20 @@ namespace Oxide.Plugins
 						sb.Append(_("No such player or player name not unique:") + " " + args[1]);
 						break;
 					}
-					var demotePlayerUserId = demotePlayer.UniqueID;
+					var demotePlayerUserId = demotePlayer.UserIDString;
 					if (!myClan.IsMember(demotePlayerUserId))
 					{
-						sb.Append(_("This player is not a member of your clan:") + " " + demotePlayer.Nickname);
+						sb.Append(_("This player is not a member of your clan:") + " " + demotePlayer.displayName);
 						break;
 					}
 					if (!myClan.IsModerator(demotePlayerUserId))
 					{
-						sb.Append(_("This player is not a moderator of your clan:") + " " + demotePlayer.Nickname);
+						sb.Append(_("This player is not a moderator of your clan:") + " " + demotePlayer.displayName);
 						break;
 					}
 					myClan.moderators.Remove(demotePlayerUserId);
 					SaveData();
-					myClan.Broadcast(player.displayName + " понизил " + demotePlayer.Nickname + " до обычного бандита");
+					myClan.Broadcast(player.displayName + " понизил " + demotePlayer.displayName + " до обычного бандита");
 					break;
 				case "leave":
 					if (args.Length != 1)
@@ -830,15 +851,15 @@ namespace Oxide.Plugins
 						sb.Append(_("No such player or player name not unique:") + " " + args[1]);
 						break;
 					}
-					var kickPlayerUserId = kickPlayer.UniqueID;
+					var kickPlayerUserId = kickPlayer.UserIDString;
 					if (!myClan.IsMember(kickPlayerUserId) && !myClan.IsInvited(kickPlayerUserId))
 					{
-						sb.Append(_("This player is not a member of your clan:") + " " + kickPlayer.Nickname);
+						sb.Append(_("This player is not a member of your clan:") + " " + kickPlayer.displayName);
 						break;
 					}
 					if (myClan.IsOwner(kickPlayerUserId) || myClan.IsModerator(kickPlayerUserId))
 					{
-						sb.Append(_("This player is an owner or moderator and cannot be kicked:") + " " + kickPlayer.Nickname);
+						sb.Append(_("This player is an owner or moderator and cannot be kicked:") + " " + kickPlayer.displayName);
 						break;
 					}
 					myClan.members.Remove(kickPlayerUserId);
@@ -854,7 +875,7 @@ namespace Oxide.Plugins
 						}
 					}
 					SetupPlayer(kickPlayer); // Remove clan tag
-					myClan.Broadcast(_("%NAME% kicked %MEMBER% from the clan.", new Dictionary<string, string>() { { "NAME", StripTag(player.displayName, myClan) }, { "MEMBER", kickPlayer.Nickname } }));
+					myClan.Broadcast(_("%NAME% kicked %MEMBER% from the clan.", new Dictionary<string, string> { { "NAME", StripTag(player.displayName, myClan) }, { "MEMBER", kickPlayer.displayName } }));
 					break;
 				case "disband":
 					if (args.Length != 2)
