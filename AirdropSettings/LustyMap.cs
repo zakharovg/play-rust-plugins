@@ -157,7 +157,7 @@ namespace Oxide.Plugins
             txtCpsNW = (string)get("CompassStrings", "NW");
 
             // Start map timer
-            timer.Repeat(1f, 0, () => lustyTimer());
+            timer.Repeat(10f, 0, () => lustyTimer());
 
             if (BasePlayer.activePlayerList.Count > 0)
             {
@@ -178,11 +178,11 @@ namespace Oxide.Plugins
             {
                 foreach (BasePlayer player in BasePlayer.activePlayerList)
                 {
-				//	CommunityEntity.ServerInstance.ClientRPCEx(new Network.SendInfo() { connection = player.net.connection }, null, "DestroyUI", new Facepunch.ObjectList("MinimapBG"));
-				//	CommunityEntity.ServerInstance.ClientRPCEx(new Network.SendInfo() { connection = player.net.connection }, null, "DestroyUI", new Facepunch.ObjectList("Minimap"));
-				//	CommunityEntity.ServerInstance.ClientRPCEx(new Network.SendInfo() { connection = player.net.connection }, null, "DestroyUI", new Facepunch.ObjectList("MinimapHUD"));
-				//	CommunityEntity.ServerInstance.ClientRPCEx(new Network.SendInfo() { connection = player.net.connection }, null, "DestroyUI", new Facepunch.ObjectList("MapGUI"));
-				}
+                    CommunityEntity.ServerInstance.ClientRPCEx(new Network.SendInfo() { connection = player.net.connection }, null, "DestroyUI", new Facepunch.ObjectList("MinimapBG"));
+                    CommunityEntity.ServerInstance.ClientRPCEx(new Network.SendInfo() { connection = player.net.connection }, null, "DestroyUI", new Facepunch.ObjectList("Minimap"));
+                    CommunityEntity.ServerInstance.ClientRPCEx(new Network.SendInfo() { connection = player.net.connection }, null, "DestroyUI", new Facepunch.ObjectList("MinimapHUD"));
+                    CommunityEntity.ServerInstance.ClientRPCEx(new Network.SendInfo() { connection = player.net.connection }, null, "DestroyUI", new Facepunch.ObjectList("MapGUI"));
+                }
             }
         }
 
@@ -580,8 +580,8 @@ namespace Oxide.Plugins
                     }
                 }
             }
-			//CommunityEntity.ServerInstance.ClientRPCEx(new Network.SendInfo() { connection = player.net.connection }, null, "DestroyUI", new Facepunch.ObjectList("MinimapBG"));
-			//CommunityEntity.ServerInstance.ClientRPCEx(new Network.SendInfo() { connection = player.net.connection }, null, "DestroyUI", new Facepunch.ObjectList("Minimap"));
+            CommunityEntity.ServerInstance.ClientRPCEx(new Network.SendInfo() { connection = player.net.connection }, null, "DestroyUI", new Facepunch.ObjectList("MinimapBG"));
+            CommunityEntity.ServerInstance.ClientRPCEx(new Network.SendInfo() { connection = player.net.connection }, null, "DestroyUI", new Facepunch.ObjectList("Minimap"));
 
             if (minimap)
             {
@@ -589,7 +589,7 @@ namespace Oxide.Plugins
             }
             else
             {
-				//CommunityEntity.ServerInstance.ClientRPCEx(new Network.SendInfo() { connection = player.net.connection }, null, "DestroyUI", new Facepunch.ObjectList("MinimapHUD")); 
+                CommunityEntity.ServerInstance.ClientRPCEx(new Network.SendInfo() { connection = player.net.connection }, null, "DestroyUI", new Facepunch.ObjectList("MinimapHUD")); 
             }
         }
 
@@ -718,7 +718,7 @@ namespace Oxide.Plugins
             gui.add("FullscreenMap", true, "0 0", "1 1", "0.16862 0.29803 0.33333 1");
             gui.url("FullscreenMap", "Map", mapurl, startx.ToString() + " " + startz.ToString(), endx.ToString() + " " + endz.ToString());
 
-            gui.text("FullscreenMap", "Title", "UpperLeft", "<size=20><color=#00ff00ff>" + lustyPlugin + "</color></size>", "0.01 0.95", "0.2 0.99", "1 1 1 0.8");
+            //gui.text("FullscreenMap", "Title", "UpperLeft", "<size=20><color=#00ff00ff>" + lustyPlugin + "</color></size>", "0.01 0.95", "0.2 0.99", "1 1 1 0.8");
             //gui.box("MapGUI", "Player", offsetx.ToString() + " " + offsetz.ToString(), (offsetx + 0.01f).ToString() + " " + (offsetz + 0.01f).ToString(), "0.8 0 0.8 1");
 
             gui.button("FullscreenMap", "ZoomIn", "MiddleCenter", "<size=20>+</size>", true, "LustyMap zoom " + (zoom + 1).ToString(), true, "FullscreenMap", "0.96 0.95", "0.99 0.99", "0 0 0 0.8");
@@ -727,7 +727,7 @@ namespace Oxide.Plugins
             gui.box("FullscreenMap", "Hor", "0.499 0", "0.501 1", "0 0 0 0.8");
             gui.box("FullscreenMap", "Vir", "0 0.498", "1 0.502", "0 0 0 0.8");
 
-            gui.button("FullscreenMap", "Close", "MiddleCenter", "Close Map", true, "LustyMap return", true, "FullscreenMap", "0.8 0.01", "0.99 0.04", "0 0 0.5 0.9");
+            gui.button("FullscreenMap", "Close", "MiddleCenter", "Закрыть карту", true, "LustyMap return", true, "FullscreenMap", "0.8 0.01", "0.99 0.04", "0 0 0.5 0.9");
             catchMouse(player, true);
             gui.send(player);
         }
@@ -764,9 +764,9 @@ namespace Oxide.Plugins
             gui.box("MapGUI", "PlayerY", "0 " + (mapZ - 0.001f).ToString(), "1 " + (mapZ + 0.001f).ToString(), "0 0 0 1");
             //gui.url("MapGUI", "Self", "http://map.playrust.io/img/self.png", (mapX - 0.01f).ToString() + " " + (mapZ - 0.01f).ToString(), (mapX + 0.01f).ToString() + " " + (mapZ + 0.01f).ToString());        
 
-            gui.text("MapGUI", "Title", "UpperLeft", "<size=22><color=#add8e6ff>" + lustyPlugin + "</color></size>", "0.01 0.9", "0.3 0.99", "1 1 1 0.8");
+            //gui.text("MapGUI", "Title", "UpperLeft", "<size=22><color=#add8e6ff>" + lustyPlugin + "</color></size>", "0.01 0.9", "0.3 0.99", "1 1 1 0.8");
             gui.text("MapGUI", "Direction", "UpperRight", "<size=16>" + txtCpsHead + " " + direction + "\n" + player.transform.position.ToString() + "</size>", "0.6 0.9", "0.99 0.99", "1 1 1 0.8");
-            gui.button("MapGUI", "Close", "MiddleCenter", "Close Map", true, "LustyMap return", true, "MapGUI", "0.8 0.01", "0.99 0.08", "0.2 0.2 0.2 0.9");
+            gui.button("MapGUI", "Close", "MiddleCenter", "Закрыть карту", true, "LustyMap return", true, "MapGUI", "0.8 0.01", "0.99 0.08", "0.2 0.2 0.2 0.9");
 
             gui.send(player);
         }
@@ -1130,8 +1130,8 @@ namespace Oxide.Plugins
                 if (guiname != null)
                 {
                     this.rand = DateTime.Now.Ticks.ToString();
-					//CommunityEntity.ServerInstance.ClientRPCEx(new Network.SendInfo() { connection = player.net.connection }, null, "DestroyUI", new Facepunch.ObjectList(guiname));
-					//CommunityEntity.ServerInstance.ClientRPCEx(new Network.SendInfo() { connection = player.net.connection }, null, "AddUI", new Facepunch.ObjectList(gui.Replace("{rand}", this.rand).Replace("{parent}", this.guiname) + "]"));
+                    CommunityEntity.ServerInstance.ClientRPCEx(new Network.SendInfo() { connection = player.net.connection }, null, "DestroyUI", new Facepunch.ObjectList(guiname));
+                    CommunityEntity.ServerInstance.ClientRPCEx(new Network.SendInfo() { connection = player.net.connection }, null, "AddUI", new Facepunch.ObjectList(gui.Replace("{rand}", this.rand).Replace("{parent}", this.guiname) + "]"));
                 }
             }
         }
@@ -1252,20 +1252,20 @@ namespace Oxide.Plugins
             {
                 if (guiname != null)
                 {                    
-					//CommunityEntity.ServerInstance.ClientRPCEx(new Network.SendInfo() { connection = player.net.connection }, null, "DestroyUI", new Facepunch.ObjectList(guiname));
-					//string final = gui.Replace("{rand}", "") + "]";
-					//CommunityEntity.ServerInstance.ClientRPCEx(new Network.SendInfo() { connection = player.net.connection }, null, "AddUI", new Facepunch.ObjectList(final));
+                    CommunityEntity.ServerInstance.ClientRPCEx(new Network.SendInfo() { connection = player.net.connection }, null, "DestroyUI", new Facepunch.ObjectList(guiname));
+                    string final = gui.Replace("{rand}", "") + "]";
+                    CommunityEntity.ServerInstance.ClientRPCEx(new Network.SendInfo() { connection = player.net.connection }, null, "AddUI", new Facepunch.ObjectList(final));
                 }
             }
         }
 
         private void destroyUI(BasePlayer player, string name)
         {
-			//CommunityEntity.ServerInstance.ClientRPCEx(new Network.SendInfo() { connection = player.net.connection }, null, "DestroyUI", new Facepunch.ObjectList(name));
+            CommunityEntity.ServerInstance.ClientRPCEx(new Network.SendInfo() { connection = player.net.connection }, null, "DestroyUI", new Facepunch.ObjectList(name));
         }
         private void addUI(BasePlayer player, string gui)
         {
-			//CommunityEntity.ServerInstance.ClientRPCEx(new Network.SendInfo() { connection = player.net.connection }, null, "AddUI", new Facepunch.ObjectList(gui));
+            CommunityEntity.ServerInstance.ClientRPCEx(new Network.SendInfo() { connection = player.net.connection }, null, "AddUI", new Facepunch.ObjectList(gui));
         }
 
         private void catchMouse(BasePlayer player, bool state)
@@ -1358,5 +1358,10 @@ namespace Oxide.Plugins
 
             }
         }
+
+		void OnPlayerInput(BasePlayer player, InputState input)
+		{
+			Puts("OnPlayerInput works!");
+		}
     }
 }

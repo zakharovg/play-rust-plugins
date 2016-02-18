@@ -6,6 +6,6 @@
     <StartArguments>/K H:\steam\rust_server\start.bat</StartArguments>
   </PropertyGroup>
   <PropertyGroup>
-    <ProjectView>ShowAllFiles</ProjectView>
+    <ProjectView>ProjectFiles</ProjectView>
   </PropertyGroup>
 </Project>

@@ -135,11 +135,15 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BPFragmentReduce.cs" />
+    <Compile Include="DeathNotes.cs" />
     <Compile Include="EnhancedHammer.cs" />
     <Compile Include="FakeOnline.cs" />
+    <Compile Include="Kits.cs" />
     <Compile Include="LootConfig.cs" />
+    <Compile Include="NoBranding.cs" />
     <Compile Include="Reclaimer.cs" />
     <Compile Include="ServerListInfo.cs" />
+    <Compile Include="SignArtist.cs" />
     <Compile Include="TwigsDecay.cs" />
     <Compile Include="AirdropExtended.cs" />
     <Compile Include="Clans.cs" />
@@ -151,6 +155,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ServerInfo.cs" />
     <Compile Include="TestPlugin.cs" />
+    <Compile Include="WeatherConfig.cs" />
     <Compile Include="ZoneWarfare.cs" />
   </ItemGroup>
   <ItemGroup>

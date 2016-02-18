@@ -12,6 +12,7 @@ using System.Text;
 using System.Linq;
 using Oxide.Core.Libraries.Covalence;
 using System.Text.RegularExpressions;
+using UnityEngine;
 
 namespace Oxide.Plugins
 {
@@ -906,6 +907,7 @@ namespace Oxide.Plugins
 							}
 						}
 					}
+
 					foreach (var member in myClan.members)
 						lookup.Remove(member);
 					myClan.Broadcast(_("Your current clan has been disbanded forever."));
