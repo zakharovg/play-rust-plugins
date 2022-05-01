@@ -1,3 +1,3 @@
 # play-rust-plugins
 
-Repository with [https://rust.facepunch.com/](playrust) plugins based on [uMod](https://umod.org/)
+Repository with [Rust game](https://rust.facepunch.com/) plugins for [uMod](https://umod.org/)
